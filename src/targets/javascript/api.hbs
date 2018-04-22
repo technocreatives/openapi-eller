@@ -1,0 +1,131 @@
+{{#if config.commonjs}}
+const fetch = require("node-fetch")
+const atob = require("atob")
+{{/if}}
+{{#if config.es6}}
+import fetch from "node-fetch"
+import atob from "atob"
+{{/if}}
+{{#if @root.config.urlShim}}
+
+function URL(relative, base) {
+    const baseUrl = base.replace(/\/+$/, "")
+    const relativeUrl = relative.replace(/^\/+/, "")
+
+    this.toString = function toString() {
+        return `${baseUrl}/${relativeUrl}`
+    }
+}
+{{else}}
+{{#if @root.config.commonjs}}
+const { URL } = require("whatwg-url")
+{{/if}}
+{{#if @root.config.es6}}
+import { URL } from "whatwg-url"
+{{/if}}
+{{/if}}
+
+{{#if servers}}
+{{#if @root.config.es6}}export {{/if}}const {{{name}}}Server = {
+{{#each servers}}
+{{#if variables}}
+    {{{description}}}({{{variables}}}) {
+        return "{{{url}}}"
+{{#each replacements}}
+            .replace("{{{key}}}", {{{value}}})
+{{/each}}
+    }{{#unless @last}},{{/unless}}
+{{else}}
+    {{{description}}}: "{{{url}}}"{{#unless @last}},{{/unless}}
+{{/if}}
+{{/each}}
+}
+{{#if @root.config.commonjs}}
+module.exports.{{{name}}}Server = {{{name}}}Server
+{{/if}}
+
+{{/if}}
+{{#each security}}
+{{#if isHttp}}
+{{#if isBasic}}
+{{#if @root.config.es6}}export {{/if}}function {{name}}BasicAuthInterceptor(username, password) {
+    function interceptor(req) {
+        const base64Data = atob(`${username}:${password}`)
+        const header = `Basic ${base64Data}`
+{{/if}}
+{{#if isBearer}}
+function {{name}}BearerInterceptor(bearerToken) {
+    function interceptor(req) {
+       const header = `Bearer ${bearerToken}`
+
+{{/if}}
+
+        if (!req.headers) {
+            req.headers = {}
+        }
+
+        req.headers.Authorization = header
+        return req
+    }
+
+    interceptor.__name = "{{name}}"
+    return interceptor
+}
+{{#if @root/config.commonjs}}
+{{#if isBasic}}
+module.exports.{{name}}BasicAuthInterceptor = {{name}}BasicAuthInterceptor
+{{/if}}
+{{#if isBearer}}
+module.exports.{{name}}BearerInterceptor = {{name}}BearerInterceptor
+{{/if}}
+{{/if}}
+{{/if}}
+
+{{/each}}
+{{#if @root.config.es6}}export {{/if}}class {{name}}Service {
+    static create(url, ...interceptors) {
+        return new {{name}}Service(url, ...interceptors)
+    }
+
+    constructor(baseUrl, ...interceptors) {
+        this.baseUrl = baseUrl
+        this.interceptors = interceptors.reduce((o, x) => {
+            o[x.__name] = x
+            return o
+        }, {})
+    }
+    
+    _interceptor(name) {
+        if (this.interceptors[name] == null) {
+            throw new Error(`Missing interceptor '${name}'`)
+        }
+
+        return this.interceptors[name]
+    }
+
+    _request(options, ...interceptors) {
+        return interceptors.reduce((acc, i) => i(acc), options)
+    }
+
+{{#each groups}}
+{{#each endpoints}}
+    async {{operationId}}{{{operationParams}}} {
+        const url = new URL(`{{{url}}}`, this.baseUrl)
+        const reqBody = {
+            method: "{{httpMethod}}"
+        }
+{{#if requestParams}}
+        {{{requestParams}}}
+{{/if}}
+        const options = this._request(reqBody{{#if security}}, {{#each security}}this._interceptor("{{name}}"){{#unless @last}}, {{/unless}}{{/each}}{{/if}})
+        const response = await fetch(url.toString(), options)
+        const output = await response.json()
+        return output
+    }
+
+{{/each}}
+{{/each}}
+}
+{{#if config.commonjs}}
+module.exports.{{name}}Service = {{name}}Service
+{{/if}}

@@ -1,0 +1,45 @@
+{
+  "name": "openapi-eller",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": {
+    "openapi-eller": "dist/main.js"
+  },
+  "scripts": {
+    "createBuildFolders": "mkdir -p build/ && mkdir -p build/targets",
+    "copyJs": "cp -a src/targets/. build/targets/",
+    "transpile": "tsc && babel build -d dist/ --copy-files",
+    "prepareBin": "mv dist/main.js dist/openapi-eller && chmod +x dist/openapi-eller",
+    "build": "npm run createBuildFolders && npm run copyJs && npm run transpile && npm run prepareBin",
+    "ybuild": "yarn run createBuildFolders && yarn run copyJs && yarn run transpile && yarn run prepareBin",
+    "clean": "rm -rf build && rm -rf dist",
+    "test": "ava"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.15.1",
+    "handlebars": "^4.0.11",
+    "js-yaml": "^3.10.0",
+    "json-ref-lite": "^1.1.0",
+    "lodash": "^4.17.4",
+    "mkdirp": "^0.5.1",
+    "whatwg-url": "^6.4.0",
+    "winston": "^2.4.1"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.44",
+    "@babel/core": "^7.0.0-beta.44",
+    "@babel/preset-env": "^7.0.0-beta.44",
+    "@types/handlebars": "^4.0.37",
+    "@types/js-yaml": "^3.11.1",
+    "@types/lodash": "^4.14.106",
+    "@types/node": "^9.6.2",
+    "babel-plugin-module-resolver": "^3.1.1",
+    "openapi3-ts": "^0.9.0",
+    "tslint": "^5.9.1",
+    "tslint-config-airbnb": "^5.8.0",
+    "typescript": "^2.8.1"
+  }
+}

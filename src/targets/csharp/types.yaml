@@ -1,0 +1,26 @@
+integer:
+  null: long
+  int64: long
+  int32: int
+  unix-time: Date
+string:
+  null: string
+  date-time: DateTime
+  date: DateTime
+  byte: byte[]
+  binary: string
+  password: string
+  uri: Uri
+  url: Uri
+number:
+  null: double
+  float: float
+  double: double
+boolean:
+  null: bool
+array: "List<{value}>"
+map: "Dictionary<{key}, {value}>"
+set: "Set<{value}>"
+null: void
+object:
+  null: object

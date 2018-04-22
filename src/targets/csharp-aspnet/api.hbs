@@ -1,0 +1,169 @@
+using JsonSubTypes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Web.Http;
+using System.Web.Http.Results;
+using {{{config.namespace}}}.Models;
+
+// ReSharper disable UnusedAutoPropertyAccessor.Local
+// ReSharper disable NonReadonlyMemberInGetHashCode
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable MergeCastWithTypeCheck
+
+namespace {{{config.namespace}}}.Controllers
+{
+{{#each groups}}
+    [RoutePrefix("")]
+    public class {{name}}Controller : ApiController
+    {
+{{#each endpoints}}
+        [{{httpMethod}}]
+        [Route("{{{url}}}")]
+        public {{{returnType}}} {{{operationId}}}{{{operationParams}}}
+        {
+            throw new NotImplementedException("{{{url}}}");
+        }
+        
+{{/each}}
+    }
+
+{{/each}}
+}
+
+namespace {{{config.namespace}}}.Models
+{
+{{#each models}}
+{{#if isEnum}}
+    public enum {{{name}}}
+    {
+{{#each values}}
+        [EnumMember(Value = "{{{value}}}")] 
+        {{{key}}}{{#unless @last}},{{/unless}}
+{{/each}}
+    }
+
+    public static class {{{name}}}Extensions
+    {
+        public static String Value(this {{{name}}} instance)
+        {
+            switch (instance)
+            {
+{{#each values}}
+                case {{{../name}}}.{{{key}}}:
+                    return "{{{value}}}";
+{{/each}}
+                default:
+                    return null;
+            }
+        }
+    }
+
+{{else}}
+{{#if doc}}
+    {{{doc}}}
+{{/if}}
+    public partial class {{{name}}} : IEquatable<{{{name}}}>{{#if interfaces}}, {{interfaces}}{{/if}}
+    {
+{{#each fields}}
+{{#if doc}}
+        {{{doc}}}
+{{/if}}
+        [JsonProperty("{{{key}}}"{{#unless isOptional}}, Required = Required.Always{{/unless}})]
+{{#if isEnum}}
+        [JsonConverter(typeof(StringEnumConverter))]
+{{/if}}
+{{#if @root.config.publicSet}}
+        public {{{type}}} {{{name}}} { get; set; }
+{{else}}
+        public {{{type}}} {{{name}}} { get; private set; }
+{{/if}}
+{{/each}}
+
+{{#each enums}}
+{{#if isEnum}}
+        public enum {{{name}}}
+        {
+{{#each values}}
+            [EnumMember(Value = "{{{value}}}")] 
+            {{{key}}}{{#unless @last}},{{/unless}}
+{{/each}}
+        }
+
+{{/if}}
+{{#if isOneOf}}
+        [JsonConverter(typeof(JsonSubtypes), "{{{discriminator}}}")]
+{{#each values}}
+        [JsonSubtypes.KnownSubType(typeof({{{key}}}), "{{{value}}}")]
+{{/each}}
+        public interface {{{name}}} {
+            {{{discriminatorType}}} {{{discriminatorVariable}}} { get; }
+        }
+
+{{/if}}
+{{/each}}
+        public bool Equals({{{name}}} other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+{{#each fields}}
+            if (!Equals({{{name}}}, other.{{{name}}})) return false;
+{{/each}}
+            return true;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals(({{{name}}}) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = 0;
+{{#each fields}}
+{{#if isHashable}}
+                hashCode = (hashCode * 397) ^ {{{name}}}.GetHashCode();
+{{else}}
+{{#if isEnum}}
+                hashCode = (hashCode * 397) ^ {{{name}}}.GetHashCode();
+{{else}}
+                hashCode = (hashCode * 397) ^ ({{{name}}} != null ? {{{name}}}.GetHashCode() : 0);
+{{/if}}
+{{/if}}
+{{/each}}
+                return hashCode;
+            }
+        }
+    }
+
+{{#each enums}}
+{{#if isEnum}}
+    public static class {{{../name}}}{{{name}}}Extensions
+    {
+        public static String Value(this {{{../name}}}.{{{name}}} instance)
+        {
+            switch (instance)
+            {
+{{#each values}}
+                case {{{../../name}}}.{{{../name}}}.{{{key}}}:
+                    return "{{{value}}}";
+{{/each}}
+                default:
+                    return null;
+            }
+        }
+    }
+    
+{{/if}}
+{{/each}}
+{{/if}}
+{{/each}} 
+}

@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "es6",
+        "moduleResolution": "node",
+        "baseUrl": "src",
+        "allowSyntheticDefaultImports": true,
+        "noImplicitAny": true,
+        "outDir": "build",
+        "strict": true,
+        "types": [
+            "node"
+        ],
+        "typeRoots": [
+            "../node_modules/@types",
+            "./types"
+        ],
+        "noUnusedLocals": true,
+    },
+    "include": [
+        "src/**/*",
+    ],
+    "exclude": [
+        "dist",
+        "node_modules",
+    ]
+}

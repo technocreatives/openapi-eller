@@ -1,0 +1,403 @@
+import Foundation
+import Moya
+import OAuthSwift
+import RxSwift
+
+// Generated. Do not edit.
+
+{{#each security}}
+{{#if isApiKey}}
+public struct {{{../name}}}{{{name}}} {
+    let token: String
+
+{{#if inHeader}}
+    var headers: [String: String] {
+        return ["{{{key}}}": "Bearer \(token)"]
+    }
+{{/if}}
+{{#if inQuery}}
+    var queryParameters: [String: String] {
+        return ["{{{key}}}": token]
+    }
+{{/if}}
+}
+
+{{/if}}
+{{#if isOAuth2}}
+public class {{{../name}}}{{{name}}}OAuth {
+    private let authorizeURL = URL(string: "{{authorizationUrl}}")!
+    private let accessTokenURL = URL(string: "{{tokenUrl}}")!
+{{#if refreshUrl}}
+    private let refreshURL = URL(string: "{{refreshUrl}}")!
+{{/if}}
+
+    let clientId: String
+    let clientSecret: String
+    let redirectURL: URL
+
+    public init(clientId: String, clientSecret: String, redirectURL: URL) {
+        self.clientId = clientId
+        self.clientSecret = clientSecret
+        self.redirectURL = redirectURL
+    }
+    
+    public enum Scope: String {
+{{#each scopes}}
+        case {{{name}}} = "{{{value}}}"
+{{/each}}
+    }
+
+    func authorize(scopes: [Scope], delimiter: String = " ") -> Single<OAuthSwiftCredential> {
+        var client = OAuth2Swift(
+            consumerKey: clientId,
+            consumerSecret: clientSecret,
+            authorizeUrl: authorizeURL.absoluteString,
+            responseType: "token"
+        )
+
+        client.allowMissingStateCheck = true
+
+        return client.rx.authorize(withCallbackURL: self.redirectURL,
+            scope: scopes.map { $0.rawValue }.joined(separator: delimiter),
+            state: "")
+    }
+}
+
+{{/if}}
+{{/each}}
+
+fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
+    public init(baseURL: URL,
+                headers: [String: String] = [:],
+                queryParameters: [String: String] = [:],
+                requestClosure: @escaping RequestClosure = MoyaProvider.defaultRequestMapping,
+                stubClosure: @escaping StubClosure = MoyaProvider.neverStub,
+                callbackQueue: DispatchQueue? = nil,
+                manager: Manager = MoyaProvider<Target>.defaultAlamofireManager(),
+                plugins: [PluginType] = [],
+                trackInflights: Bool = false) {
+
+        let newEndpointClosure: EndpointClosure = { target in
+            let httpHeader = headers.merging(target.headers ?? [:], uniquingKeysWith: { _, new in new })
+            
+            return Endpoint(
+                url: baseURL.absoluteString.appending(target.path),
+                sampleResponseClosure: { return .networkResponse(200, Data()) },
+                method: target.method,
+                task: target.task,
+                httpHeaderFields: httpHeader)
+        }
+        
+        super.init(endpointClosure: newEndpointClosure, requestClosure: requestClosure, stubClosure: stubClosure, callbackQueue: callbackQueue, manager: manager, plugins: plugins, trackInflights: trackInflights)
+    }
+}
+
+{{#if servers}}
+public enum {{{name}}}Server: CustomStringConvertible {
+    typealias RawValue = String
+
+{{#each servers}}
+{{#if parameters}}
+    case {{{description}}}({{{parameters}}})
+{{else}}
+    case {{{description}}}
+{{/if}}
+{{/each}}
+
+    public var description: String {
+        switch self {
+{{#each servers}}
+{{#if arguments}}
+        case .{{{description}}}({{{arguments}}}):
+            return "{{{url}}}"
+{{else}}
+        case .{{{description}}}:
+            return "{{{url}}}"
+{{/if}}
+{{/each}}
+        }
+    }
+
+    public var url: URL {
+        return URL(string: self.description)!
+    }
+
+    init?(rawValue: String) {
+        return nil
+    }
+
+    var rawValue: String {
+        return self.description
+    }
+}
+{{/if}}
+
+enum {{{name}}}: TargetType {
+{{#each groups}}
+{{#each endpoints}}
+{{#if operationParams}}
+    case {{{operationId}}}({{{operationParams}}})
+{{else}}
+    case {{{operationId}}}
+{{/if}}
+{{/each}}
+{{/each}}
+
+    var baseURL: URL { fatalError("baseURL must be set by the provider.") }
+
+    var sampleData: Data {
+        return Data()
+    }
+    
+    var headers: [String : String]? {
+        return nil
+    }
+    
+    var path: String {
+        switch self {
+{{#each groups}}
+{{#each endpoints}}
+{{#if operationArgs}}
+        case let .{{{operationId}}}{{{operationArgs}}}:
+{{else}}
+        case .{{{operationId}}}:
+{{/if}}
+            return "{{{url}}}"
+{{/each}}
+{{/each}}
+        }
+    }
+
+    var method: Moya.Method {
+        switch self {
+{{#each groups}}
+{{#each endpoints}}
+        case .{{{operationId}}}:
+            return .{{{httpMethod}}}
+{{/each}}
+{{/each}}
+        }
+    }
+
+    var task: Task {
+        switch self {
+{{#each groups}}
+{{#each endpoints}}
+{{#if operationArgs}}
+        case let .{{{operationId}}}{{{operationArgs}}}:
+{{else}}
+        case .{{{operationId}}}:
+{{/if}}
+            {{{requestParams}}}
+{{/each}}
+{{/each}}
+        }
+    }
+}
+
+public class {{{name}}}Service {
+    private let provider: MoyaConfigurableProvider<{{{name}}}>
+
+{{#if servers}}
+    public init(server: {{{name}}}Server) {
+        provider = MoyaConfigurableProvider(baseURL: server.url)
+    }
+
+{{/if}}
+    public init(baseURL: URL) {
+        provider = MoyaConfigurableProvider(baseURL: baseURL)
+    }
+{{#each groups}}
+{{#each endpoints}}
+
+    func {{{operationId}}}({{{operationParamsDefaults}}}) -> Single<{{{returnType}}}> {
+        return provider.rx.request({{{../name}}}.{{{operationId}}}{{{operationKwargs}}})
+            .filterSuccessfulStatusAndRedirectCodes()
+            .map({{{returnType}}}.self)
+    }
+{{/each}}
+{{/each}}
+}
+
+{{! MODELS }}
+{{#each models}}
+{{#if isEnum}}
+public enum {{{name}}}: String, Codable {
+{{#each values}}
+    case {{{key}}} = "{{{value}}}"
+{{/each}}
+}
+{{else}}
+public struct {{{name}}}: Hashable, Codable {
+{{#each fields}}
+    let {{{name}}}: {{{type}}}
+{{/each}}
+
+    public var hashValue: Int {
+        var v = 0
+{{#each fields}}
+{{#if isHashable}}
+{{#if isOptional}}
+        v ^= {{{name}}}?.hashValue ?? 0
+{{else}}
+        v ^= {{{name}}}.hashValue
+{{/if}}
+{{else}}
+{{! If not hashable, increment by length or size to make hashy enough }}
+{{#if isOptional}}
+        v += {{{name}}} == nil ? 0 : 1
+{{else}}
+        v += {{{name}}}.count
+{{/if}}
+{{/if}}
+{{/each}}
+        return v
+    }
+
+    public static func ==(lhs: {{{name}}}, rhs: {{{name}}}) -> Bool {
+{{#each fields}}
+{{#if isOptional}}
+        if lhs.{{{name}}} == nil && rhs.{{{name}}} != nil { return false }
+        if lhs.{{{name}}} != nil && rhs.{{{name}}} == nil { return false }
+        if let lv = lhs.{{{name}}}, let rv = rhs.{{{name}}}, lv != rv { return false }
+{{else}}
+        if lhs.{{{name}}} != rhs.{{{name}}} { return false }
+{{/if}}
+{{/each}}
+
+        return true
+    }
+
+    private enum CodingKeys: String, CodingKey {
+{{#each fields}}
+        case {{{name}}} = "{{{key}}}"
+{{/each}}
+    }
+
+{{#each enums}}
+{{#if isEnum}}
+    public enum {{{name}}}: String, Codable {
+{{#each values}}
+        case {{{key}}}{{#if value}} = "{{{value}}}"{{/if}}
+{{/each}}
+    }
+{{/if}}
+{{#if isOneOf}}
+    public enum {{{name}}}: Hashable, Codable {
+{{#each values}}
+        case {{{key}}}({{{type}}})
+{{/each}}
+
+        public static func ==(lhs: {{{name}}}, rhs: {{{name}}}) -> Bool {
+            switch (lhs, rhs) {
+{{#each values}}
+            case let (.{{{key}}}(a), .{{{key}}}(b)):
+                return a == b
+{{/each}}
+            default:
+                return false
+            }
+        }
+
+        public var hashValue: Int {
+            switch self {
+{{#each values}}
+            case let .{{{key}}}(value):
+                return value.hashValue
+{{/each}}
+            }
+        }
+
+{{#if discriminator}}
+        private enum CodingKeys: String, CodingKey {
+            case discriminator = "{{{discriminator}}}"
+        }
+
+        private enum DiscriminatorKeys: String, Codable {
+{{#each values}}
+            case {{{key}}} = "{{{value}}}"
+{{/each}}
+        }
+{{/if}}
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+{{#each values}}
+            case let .{{{key}}}(value):
+                try container.encode(value)
+{{/each}}
+            }
+        }
+
+        public init(from decoder: Decoder) throws {
+            let value = try decoder.singleValueContainer()
+{{#if discriminator}}
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            let discriminator = try values.decode(DiscriminatorKeys.self, forKey: .discriminator)
+
+            switch discriminator {
+{{#each values}}
+            case .{{{key}}}:
+                self = .{{{key}}}(try value.decode({{{type}}}.self))
+{{/each}}
+            }
+{{else}}
+{{#each values}}
+{{#unless @last}}
+            if let value = try? value.decode({{{type}}}.self) {
+                self = .{{{key}}}(value)
+                return
+            }
+{{else}}
+            self = .{{{key}}}(try value.decode({{{type}}}.self))
+{{/unless}}
+{{/each}}
+{{/if}}
+        }
+    }
+{{/if}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+}
+{{/if}}
+
+{{/each}}
+
+fileprivate extension Reactive where Base: OAuth2Swift {
+    func authorize(deviceToken: String) -> Single<OAuthSwiftCredential> {
+        return Single.create { single in
+            let request = self.base.authorize(
+                deviceToken: deviceToken,
+                success: {
+                    single(.success($0))
+                },
+                failure: {
+                    single(.error($0))
+                })
+
+            return Disposables.create { request?.cancel() }
+        }
+    }
+    
+    func authorize(withCallbackURL url: URL, scope: String, state: String, parameters: OAuthSwift.Parameters = [:], headers: OAuthSwift.Headers? = nil) -> Single<OAuthSwiftCredential> {
+        return Single.create { single in
+            let request = self.base.authorize(
+                withCallbackURL: url,
+                scope: scope,
+                state: state,
+                parameters: parameters,
+                headers: headers,
+                success: { (credential: OAuthSwiftCredential, _: OAuthSwiftResponse?, _: OAuthSwift.Parameters) in
+                    single(.success(credential))
+                },
+                failure: { (error: OAuthSwiftError) in
+                    single(.error(error))
+                })
+            
+            return Disposables.create { request?.cancel() }
+        }
+    }
+}

@@ -1,0 +1,31 @@
+{{#if config.commonjs}}
+const fetch = require("node-fetch")
+
+class {{name}}Service {
+    static create(url) {
+        return new {{name}}Service(url);
+    }
+
+    constructor(baseUrl) {
+        this.baseUrl = baseUrl
+    }
+    
+    _request(method, url) {
+        return fetch(`${this.baseUrl}${url}`, { method })
+    }
+
+{{#each groups}}
+{{#each endpoints}}
+    async {{operationId}}{{{operationParams}}} {
+        const response = await this._request("{{httpMethod}}", `{{{url}}}`)
+        const output = await response.json()
+        return output
+    }
+
+{{/each}}
+{{/each}}
+}
+
+{{#if config.commonjs}}
+module.exports = {{name}}Service
+{{/if}}

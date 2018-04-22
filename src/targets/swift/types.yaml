@@ -1,0 +1,25 @@
+integer:
+  null: Int
+  int64: Int64
+  int32: Int32
+  uint64: UInt64
+  uint32: UInt32
+string:
+  null: String
+  date-time: Date
+  date: Date
+  byte: String
+  binary: String
+  password: String
+  uri: URL
+  url: URL
+number:
+  null: NSNumber
+  float: Float
+  double: Double
+boolean:
+  null: Bool
+array: "[{value}]"
+map: "[{key}: {value}]"
+set: "Set<{value}>"
+null: Void
