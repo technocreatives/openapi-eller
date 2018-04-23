@@ -45,5 +45,10 @@
   },
   "files": [
     "dist/"
+  ],
+  "keywords": [
+      "openapi",
+      "generator",
+      "api"
   ]
 }
