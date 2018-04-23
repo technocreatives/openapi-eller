@@ -3,11 +3,11 @@
 Generate OpenAPI v3 clients and servers from the command line with nothing more
 than Node.js.
 
-<!-- Just run:
+Just run:
 
 ```
 npm i -g openapi-eller
-``` -->
+```
 
 See `openapi-eller --help` for usage details.
 
