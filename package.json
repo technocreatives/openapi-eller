@@ -4,9 +4,10 @@
   "description": "",
   "main": "dist/index.js",
   "bin": {
-    "openapi-eller": "dist/main.js"
+    "openapi-eller": "dist/openapi-eller"
   },
   "scripts": {
+    "prepublish": "npm run clean && npm run build",
     "createBuildFolders": "mkdir -p build/ && mkdir -p build/targets",
     "copyJs": "cp -a src/targets/. build/targets/",
     "transpile": "tsc && babel build -d dist/ --copy-files",
@@ -41,5 +42,8 @@
     "tslint": "^5.9.1",
     "tslint-config-airbnb": "^5.8.0",
     "typescript": "^2.8.1"
-  }
+  },
+  "files": [
+    "dist/"
+  ]
 }
