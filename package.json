@@ -47,8 +47,12 @@
     "dist/"
   ],
   "keywords": [
-      "openapi",
-      "generator",
-      "api"
-  ]
+    "openapi",
+    "generator",
+    "api"
+  ],
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/technocreatives/openapi-eller.git"
+  }
 }
