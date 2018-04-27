@@ -81,7 +81,7 @@ function resolveTypeImpl(
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
   } else if (prop && prop.key) {
-    if (prop.title) {
+    if (prop.title && prop.hasModelTitle) {
       candidate = target.cls(prop.title)
     } else {
       candidate = target.cls(prop.key)

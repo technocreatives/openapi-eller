@@ -38,11 +38,14 @@ function loadYamlFile(yamlFilePath: string) {
 
   // Add keys to schemas
   if (tree && tree.components && tree.components.schemas) {
-    Object.keys(tree.components.schemas).forEach((k) => {
-      // typescript stuff: tree.components.schemas might be undefined
-      // https://github.com/Microsoft/TypeScript/issues/10642
-      if (tree && tree.components && tree.components.schemas) {
-        tree.components.schemas[k].key = k
+    const schemas = tree.components.schemas
+
+    Object.keys(schemas).forEach((k) => {
+      schemas[k].key = k
+
+      // Ensure titles have known origins
+      if (schemas[k].title) {
+        schemas[k].hasModelTitle = true
       }
     })
   }

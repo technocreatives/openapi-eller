@@ -31,6 +31,7 @@ export interface OpenApiGenSchema extends SchemaObject {
   additionalProperties?: (OpenApiGenSchema | ReferenceObject)
   oneOf?: (OpenApiGenSchema | ReferenceObject)[]
   items?: OpenApiGenSchema | ReferenceObject
+  hasModelTitle?: boolean
 }
 
 export enum SecuritySchemeType {
