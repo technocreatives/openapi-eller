@@ -17,12 +17,21 @@ import {
 } from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
+const reservedWords = fs.readFileSync(`${__dirname}/reserved-words.txt`, "utf8")
+  .trim()
+  .split("\n")
 
 export default class RustTarget extends Target {
   types: TargetTypeMap = typeResolvers("rust")
 
   cls(key: string, isNested?: boolean | undefined): string {
-    return _.upperFirst(_.camelCase(key))
+    const candidate = _.upperFirst(_.camelCase(key))
+    
+    if (reservedWords.includes(candidate)) {
+      return `${candidate}_`
+    }
+
+    return candidate
   }
 
   enumKey(string: string): string {
@@ -50,7 +59,13 @@ export default class RustTarget extends Target {
   }
 
   variable(basename: string): string {
-    return _.snakeCase(basename)
+    const candidate = _.snakeCase(basename)
+    
+    if (reservedWords.includes(candidate)) {
+      return `${candidate}_`
+    }
+
+    return candidate
   }
 
   isHashable(type: string): boolean {
