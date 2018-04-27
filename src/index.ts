@@ -306,7 +306,6 @@ function generateModels(
             throw new Error(`Object with oneOf definition is lacking a discriminator: ${schema.key}`)
           }
         } else if (enumDef) {
-          // TODO: check if this is ok name in case enum method is missing
           name = target.enum ? target.enum(baseName) : baseName
           enumObject = {
             name,
@@ -348,7 +347,7 @@ function generateModels(
           return false
         }
         
-        const itemsEnum = (<OpenApiGenSchema>obj.items).enum
+        const itemsEnum = (obj.items as OpenApiGenSchema).enum
         if (!itemsEnum) {
           return false
         }
@@ -361,11 +360,11 @@ function generateModels(
       .reduce((o, key) => {
         let baseName = key
         const schema = schemaProperties[key]
-        const items = (<OpenApiGenSchema>schema.items)
+        const items = schema.items as OpenApiGenSchema
         if (items && items.title) {
           baseName = items.title as string
         }
-        // TODO: check if this is ok name in case enum method is missing
+        
         const name = target.enum ? target.enum(baseName) : baseName
 
         if (!items.enum) {
