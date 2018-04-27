@@ -1,0 +1,76 @@
+=== Basic requirements for a conforming target
+
+==== Basic API
+
+A conforming implementation consists of at the very least:
+
+* A top level class—or equivalent—holding methods for each endpoint
+  for a given service
+* A top level enum-like class—or equivalent—for holding known
+  server endpoints, configurable for the defined variables of that
+  server endpoint
+* At least one constructor taking a base URL as a string, and preferably
+  another constructor accepting the enum-like class type for servers if
+  it makes sense for the provided language
+* Each endpoint provides a return type of an Observable or a Promise/Future,
+  preferring the most used solution for the platform, and falling back to
+  Rx where that is not specified or is simpler
+* Generates RFC-compliant handlers for OAuth 2 where required
+* Handles all types supported by OpenAPI v3, and preferrably has a mechanism
+  for handling well-known formats, and custom extensions for those formats
+
+==== Interceptors
+
+All targets must implement an interceptor pattern for handling the
+various API key, OAuth and other header and query string mangling
+operations that affect all endpoints.
+
+The basic principle is that in your language, it should be possible
+to provide the necessary hooks to modify the headers and query parameters
+to support authentication and other requirements for a given API.
+
+Where possible, it is considered highly useful to be able to inject a
+logging interceptor, though with some implementations this may be difficult
+if not impossible. Try to design your target so that this is achievable.
+
+==== Formatters and Types
+
+Targets should—but are not required to—provide a mechanism for handling user-defined
+formats and parsing them to correct types. This is distinct from actually implementing
+those formats however. It should be sufficient to provide as part of the service
+constructors to provide parsing hook functions keyed by the type and format arguments.
+
+In Kotlin, the `@Format` annotation is used for this purpose and provides a hook.
+The `Gson` library can then be provided type handler implementations in the constructor
+in order to make parsing those formats to the correct data types possible.
+
+Consider for example an object of type `string` with a format `uint64`. It is reasonable
+for this type to therefore be generated to `Long` and using the `@Format("int64")`
+annotation, causing the string to be correctly parsed into the most correct datatype.
+
+==== Configuration
+
+`openapi-eller` supports the direct manipulation of targets using a provided config file.
+
+Some keys are reserved for use by the generator itself (such as `fieldRenames`) but may
+be extended with custom keys for use by targets and are accessible within the templates
+via the `config` key. Examples of this in use include the JavaScript target, where
+different module export styles are used whether or not `es6` or `commonjs` is set to true.
+
+At this stage, configuration is quite rudimentary. There is no support for disjoint values,
+and no automatically derived variables. This is an area of development going forward, and 
+suggestions are highly welcomed.
+
+==== Dependency policy
+
+**Until 1.0.0, this policy does not apply. Experiment at will!**
+
+All dependencies must be permissively licensed. Once a target is accepted into the tree,
+dependencies may not be changed except for minor version changes, except in cases of major
+bugs. Only in major versions will this requirement be relaxed.
+
+==== Interpretation of `http` authentication type
+
+You may use the `bearerFormat` key as a discriminator blah blah blah TODO
+
+`apiKey` should not be used for bearer tokens.
