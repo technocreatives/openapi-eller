@@ -13,13 +13,13 @@ See `openapi-eller --help` for usage details.
 
 - [Documentation](https://technocreatives.github.io/openapi-eller)
 
-<!-- ---
+---
 
 Looking for an easy way to generate a mock server from an OpenAPI v3 spec? We've got you covered.
 
 Try [openapi-mock-eller](https://github.com/technocreatives/openapi-mock-eller) today!
 
---- -->
+---
 
 **PLEASE NOTE: This codebase is still a work-in-progress, but it does produce production-grade code
 for those targets listed as supported. Behaviour is subject to change between variants until 1.0.0.**
@@ -45,18 +45,18 @@ for those targets listed as supported. Behaviour is subject to change between va
 
 There are other targets in the tree, though they are a work-in-progress.
 
+## Roadmap
+
+- [x] Abstract class for handling targets
+- [ ] Modularise and clean up the messy generator code
+- [ ] Support for nested anonymous objects (there's already partial support but it's patchy)
+- [ ] A template generator for building new targets with ease
+- [ ] A template checklist for generator compliance
+- [ ] Documentation for the internal representation of the schemas to ease development
+
 ## Users
 
 - The Techno Creatives
-
-## Roadmap
-
-- Abstract class for handling targets
-- Modularise and clean up the messy generator code
-- Support for nested anonymous objects (there's already partial support but it's patchy)
-- A template generator for building new targets with ease
-- A template checklist for generator compliance
-- Documentation for the internal representation of the schemas to ease development
 
 ## Contributing
 
