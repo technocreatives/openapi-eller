@@ -145,7 +145,7 @@ export default class KotlinTarget extends Target {
 
   generate(args: GenerateArguments) {
     return {
-      "Generated.kt": apiTmpl(args),
+      "Generated.kt": apiTmpl(args)
     }
   }
 
@@ -174,9 +174,9 @@ export default class KotlinTarget extends Target {
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: this.variable(k),
+          value: this.variable(k)
         }
-      }),
+      })
     }))
   }
 }

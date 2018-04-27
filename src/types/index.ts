@@ -37,7 +37,7 @@ export enum SecuritySchemeType {
   HTTP = "http",
   ApiKey = "apiKey",
   OAuth2 = "oauth2",
-  OpenIdConnect = "openIdConnect",
+  OpenIdConnect = "openIdConnect"
 }
 
 export interface OpenApiGenSecuritySchemeObject extends SecuritySchemeObject {
@@ -49,13 +49,13 @@ export interface OpenApiGenSecuritySchemeObject extends SecuritySchemeObject {
 
 export enum ParameterLocation {
   Header = "header",
-  Query = "query",
+  Query = "query"
 }
 
 export enum SecuritySchemeObjectScheme {
   Basic = "basic",
   Bearer = "bearer",
-  Digest = "digest",
+  Digest = "digest"
 }
 
 export interface ConfigObject {
@@ -238,7 +238,7 @@ export interface EnumObject {
 
 export enum EnumObjectType {
   OneOf = "oneOf",
-  Enum = "enum",
+  Enum = "enum"
 }
 
 export interface TargetEndpoint {

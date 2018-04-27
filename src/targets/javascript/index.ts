@@ -64,7 +64,7 @@ const jsTarget: TargetObject = {
       const prop = Object.keys(x)[0]
       return {
         name: jsTarget.cls(prop),
-        values: x[prop],
+        values: x[prop]
       }
     })
   },
@@ -154,9 +154,9 @@ const jsTarget: TargetObject = {
       replacements: _.map(server.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: jsTarget.variable(k),
+          value: jsTarget.variable(k)
         }
-      }),
+      })
     }))
   },
   generate({ 
@@ -165,7 +165,7 @@ const jsTarget: TargetObject = {
     name, 
     groups, 
     models, 
-    servers,
+    servers
   }) {
     const api = apiTmpl({
       config,
@@ -173,7 +173,7 @@ const jsTarget: TargetObject = {
       name,
       groups,
       models,
-      servers,
+      servers
     })
 
     const tsd = tsdTmpl({
@@ -182,14 +182,14 @@ const jsTarget: TargetObject = {
       name,
       groups,
       models,
-      servers,
+      servers
     })
 
     return {
       "api.js": api,
-      "api.d.ts": tsd,
+      "api.d.ts": tsd
     }
-  },
+  }
 }
 
 module.exports = jsTarget

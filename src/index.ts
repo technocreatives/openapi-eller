@@ -90,7 +90,7 @@ function loadYamlFile(yamlFilePath: string) {
 
 function generateSecuritySchemes(
   tree: OpenApiGenObject, 
-  target: Target,
+  target: Target
 ): {}[] {
   const security: TargetSecuritySchemes[] = []
 
@@ -117,8 +117,8 @@ function generateSecuritySchemes(
           isAuthorizationCode: fk === "authorizationCode",
           scopes: _.map(securitySchemeObject.flows[fk].scopes, (v, k) => ({
             name: target.enumKey(k),
-            value: k,
-          })),
+            value: k
+          }))
         })
 
         security.push(o)
@@ -129,7 +129,7 @@ function generateSecuritySchemes(
         key: securitySchemeObject.name,
         isApiKey: true,
         inHeader: securitySchemeObject.in === ParameterLocation.Header,
-        inQuery: securitySchemeObject.in === ParameterLocation.Query,
+        inQuery: securitySchemeObject.in === ParameterLocation.Query
       })
     } else if (securitySchemeObject.type === SecuritySchemeType.HTTP) {
       security.push({
@@ -140,7 +140,7 @@ function generateSecuritySchemes(
           : false,
         isDigest: securitySchemeObject.scheme
           ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Digest
-          : false,
+          : false
         // TODO: security schemes might be functoins
       })
     } else {
@@ -153,7 +153,7 @@ function generateSecuritySchemes(
 
 function generateModels(
   tree: OpenApiGenObject, 
-  target: Target,
+  target: Target
 ): { [key: string]: TargetModel } {
   if (!tree || tree.components == null) {
     return {}
@@ -180,12 +180,12 @@ function generateModels(
         isEnum: true,
         values: schema.enum.map((x: string) => ({
           key: target.enumKey(x),
-          value: x,
+          value: x
         })),
         interfaces: [],
         fields: {},
         enums: {},
-        doc: "",
+        doc: ""
       }
 
       return
@@ -204,7 +204,7 @@ function generateModels(
 
     const fields: { [key: string]: TargetField } = Object.keys(schema.properties).reduce((
       fieldObject: { [key: string]: TargetField },
-      key: string,
+      key: string
     ) => {
       if (!schema.properties) {
         return {}
@@ -271,7 +271,7 @@ function generateModels(
             const v = {
               key: target.oneOfKey(o.key),
               type: resolveType(target, schema, key, o),
-              value: o.key,
+              value: o.key
             }
 
             // Mark interfaces on targets
@@ -310,8 +310,8 @@ function generateModels(
             isOneOf: false,
             values: enumDef.map(x => ({
               key: target.enumKey(x),
-              value: x,
-            })),
+              value: x
+            }))
           }
         }
         
@@ -374,8 +374,8 @@ function generateModels(
           isOneOf: false,
           values: items.enum.map(x => ({
             key: target.enumKey(x),
-            value: x,
-          })),
+            value: x
+          }))
         }
         return o
       }, enums)
@@ -398,7 +398,7 @@ function generateModels(
       type: "",
       isEnum: false,
       values: [],
-      interfaces: [],
+      interfaces: []
     }
   })
 
@@ -412,7 +412,7 @@ function generateModels(
 function generateEndpoints(
   tree: OpenApiGenObject, 
   target: Target, 
-  config: ConfigObject,
+  config: ConfigObject
 ): TargetEndpointsGroup[] | null {
   const isGroupingEnabled = config.useGroups || false
 
@@ -500,9 +500,12 @@ function generateEndpoints(
       if (!groups[group]) {
         groups[group] = {
           name: group,
-          endpoints: [],
+          endpoints: []
         }
       }
+
+      const opParamDefaults = target.operationParamsDefaults(operationObject, anonymousReqBodyName)
+        || target.operationParams(operationObject, anonymousReqBodyName)
 
       groups[group].endpoints.push({
         operationId,
@@ -513,8 +516,7 @@ function generateEndpoints(
         //     ? target.security(operationObject.security || [])
         //     : null,
         operationParams: target.operationParams(operationObject, anonymousReqBodyName),
-        operationParamsDefaults: target.operationParamsDefaults(operationObject, anonymousReqBodyName)
-            || target.operationParams(operationObject, anonymousReqBodyName),
+        operationParamsDefaults: opParamDefaults,
         operationArgs: target.operationArgs(operationObject, anonymousReqBodyName),
         operationKwargs: target.operationKwargs(operationObject, anonymousReqBodyName),
         requestParams: target.requestParams(operationObject, anonymousReqBodyName)
@@ -529,7 +531,7 @@ async function start(
   target: string, 
   yamlPath: string, 
   configPath: string, 
-  targetDir = process.cwd(),
+  targetDir = process.cwd()
 ) {
   let config = {}
   if (configPath != null) {
@@ -558,7 +560,7 @@ async function start(
     models,
     security: generateSecuritySchemes(tree, targetObj),
     servers: targetObj.servers(tree.servers),
-    name: targetObj.cls(tree.info.title),
+    name: targetObj.cls(tree.info.title)
   }
 
   

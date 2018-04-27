@@ -152,9 +152,9 @@ export default class CSharpTarget extends Target {
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: this.variable(k),
+          value: this.variable(k)
         }
-      }),
+      })
     }))
   }
 }

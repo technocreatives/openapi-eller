@@ -34,7 +34,7 @@ function resolveType(
   target: Target, 
   schema: OpenApiGenSchema, 
   name: string, 
-  prop: OpenApiGenSchema,
+  prop: OpenApiGenSchema
 ) {
   const isOptional = schema.required 
     ? schema.required.indexOf(name) < 0
@@ -50,7 +50,7 @@ function resolveTypeImpl(
   name: string | null, 
   prop: OpenApiGenSchema | null, 
   isConstant: boolean, 
-  isOptional: boolean,
+  isOptional: boolean
 ): string {
   
   const { types, optional } = target
@@ -73,9 +73,9 @@ function resolveTypeImpl(
       target, 
       schema, 
       null, 
-      (<OpenApiGenSchema>prop.additionalProperties), 
+      prop.additionalProperties as OpenApiGenSchema, 
       false, 
-      false,
+      false
     )
     candidate = types.map
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
@@ -107,7 +107,7 @@ function resolveTypeImpl(
     // TODO: add support for Set<V>
     candidate = types.array.replace(
       "{value}", 
-      resolveTypeImpl(target, schema, name, items, false, false),
+      resolveTypeImpl(target, schema, name, items, false, false)
     )
   } else if (name !== null && (type === "object" || type == null)) {
     candidate = target.cls(name)

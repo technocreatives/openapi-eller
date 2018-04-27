@@ -90,7 +90,9 @@ export default class SwiftTarget extends Target {
     return m
   }
 
-  private operationParamsImpl(route: OperationObject, bodyName: string, hasDefaults: boolean = false): string {
+  private operationParamsImpl(route: OperationObject,
+      bodyName: string, 
+      hasDefaults: boolean = false): string {
     if (!route.parameters) {
       return ""
     }
@@ -201,10 +203,10 @@ ${indent}return .requestParameters(parameters: __params, encoding: URLEncoding.d
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: this.variable(k),
+          value: this.variable(k)
         }
       }),
-      variables: "",
+      variables: ""
     }))
   }
 }

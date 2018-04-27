@@ -85,9 +85,9 @@ const jsTarget: TargetObject = {
       replacements: _.map(server.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: jsTarget.variable(k),
+          value: jsTarget.variable(k)
         }
-      }),
+      })
     }))
   },
   generate({ config, security, name, groups, models, servers }) {
@@ -99,10 +99,10 @@ const jsTarget: TargetObject = {
         name,
         groups,
         models,
-        servers,
-      }),
+        servers
+      })
     }
-  },
+  }
 }
 
 export default jsTarget

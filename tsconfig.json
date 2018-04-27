@@ -1,9 +1,10 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es2016",
         "module": "es6",
         "moduleResolution": "node",
         "baseUrl": "src",
+        "strictNullChecks": true,
         "allowSyntheticDefaultImports": true,
         "noImplicitAny": true,
         "outDir": "build",
