@@ -1,0 +1,45 @@
+// Generated! Do not edit!
+
+use std::collections::BTreeMap;
+use url::Url;
+
+{{#each models}}
+{{#if isEnum}}
+pub enum {{{name}}} {
+{{#each values}}
+    #[serde(value = "{{{value}}}")]
+    {{{key}}}{{#unless @last}},{{/unless}}
+{{/each}}
+}
+{{else}}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct {{{name}}} {
+{{#each fields}}
+    {{#if key}}{{#unless isNameEqualToKey}}#[serde(rename = "{{{key}}}")]{{/unless}}
+    {{/if}}{{#if format}}#[openapi(format = "{{{format}}}")]
+    {{/if}}pub {{{name}}}: {{{type}}}{{#unless @last}},{{/unless}}
+{{/each}}
+}
+{{#each enums}}
+{{#if isEnum}}
+pub enum {{{../name}}}{{{name}}} {
+{{#each values}}
+    #[serde(value = "{{{value}}}")]
+    {{{key}}}{{#unless @last}},{{/unless}}
+{{/each}}
+}
+{{/if}}
+{{#if isOneOf}}
+pub enum {{{../name}}}{{{name}}} {
+{{#each values}}
+    {{{key}}}({{{value}}}){{#unless @last}},{{/unless}}
+{{/each}}
+}
+{{/if}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+{{/if}}
+
+{{/each}}

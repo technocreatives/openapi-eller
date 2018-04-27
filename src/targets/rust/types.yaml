@@ -1,0 +1,24 @@
+integer:
+  null: isize
+  int64: i64
+  int32: i32
+  unix-time: Date
+string:
+  null: String
+  date-time: Date
+  date: Date
+  byte: String
+  binary: String
+  password: String
+  uri: Url
+  url: Url
+number:
+  null: f64
+  float: f32
+  double: f64
+boolean:
+  null: Bool
+array: "Vec<{value}>"
+map: "BTreeMap<{key}, {value}>"
+set: "HashSet<{value}>"
+null: ()
