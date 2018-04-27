@@ -3,8 +3,20 @@ import _ from "lodash"
 import hbs from "handlebars"
 
 import { typeResolvers, resolveSchemaType } from "targets"
-import { TargetObject, OpenApiGenSchema } from "types"
-import { ParameterObject, RequestBodyObject } from "openapi3-ts"
+import {
+  Target,
+  OpenApiGenSchema,
+  TargetTypeMap,
+  TargetServer,
+  GenerateArguments
+} from "types"
+import {
+  SchemaObject,
+  OperationObject,
+  ServerObject,
+  ParameterObject,
+  RequestBodyObject
+} from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -12,9 +24,10 @@ const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8")
 
 const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/
 const upperSnake = _.flow([_.snakeCase, _.upperCase, x => x.replace(/\s/g, "_")])
-const kotlinTarget: TargetObject = {
-  types: typeResolvers("kotlin"),
-  variable(name) {
+export default class KotlinTarget extends Target {
+  types: TargetTypeMap = typeResolvers("kotlin")
+
+  variable(name: string): string {
     const hasAt = name.startsWith("@")
     const newName = `${hasAt ? "_" : ""}${_.camelCase(name)}`
 
@@ -23,8 +36,9 @@ const kotlinTarget: TargetObject = {
     }
    
     return newName
-  },
-  cls(name) {
+  }
+
+  cls(name: string, isNested?: boolean): string {
     const hasAt = name.startsWith("@")
 
     const newName = _.flow([_.camelCase, _.upperFirst])(name)
@@ -32,17 +46,21 @@ const kotlinTarget: TargetObject = {
       return `\`${hasAt ? "@" + newName : newName}\``
     }
     return hasAt ? "_" + newName : newName
-  },
-  interface(name) {
-    return kotlinTarget.cls(name)
-  },
-  enum(name) {
-    return kotlinTarget.cls(name)
-  },
-  format(prop) {
-    return prop.format || ""
-  },
-  enumKey(key) {
+  }
+
+  interface(name: string): string {
+    return this.cls(name)
+  }
+
+  enum(name: string): string {
+    return this.cls(name)
+  }
+
+  format(schema: OpenApiGenSchema): string | undefined {
+    return schema.format || ""
+  }
+
+  enumKey(key: string): string {
     const ks = "" + key
     if (/^\d+$/.test(ks)) {
       if (ks === "0") {
@@ -55,32 +73,39 @@ const kotlinTarget: TargetObject = {
       return upperSnake("_" + key)
     }
     return upperSnake(key)
-  },
-  fieldDoc(doc) {
+  }
+
+  fieldDoc(schema: OpenApiGenSchema): string | undefined {
     // TODO
     return ""
-  },
-  modelDoc(doc) {
+  }
+
+  modelDoc(schema: OpenApiGenSchema): string | undefined {
     // TODO
     return ""
-  },
-  oneOfKey(key) {
-    return kotlinTarget.cls(key)
-  },
-  optional(type) {
+  }
+
+  oneOfKey(key: string): string {
+    return this.cls(key)
+  }
+
+  optional(type: string): string {
     return `${type}?`
-  },
-  operationId(route) {
+  }
+  
+  operationId(route: SchemaObject): string {
     if (route.operationId) {
-      return kotlinTarget.variable(route.operationId)
+      return this.variable(route.operationId)
     }
 
-    return kotlinTarget.variable(route.summary)
-  },
-  httpMethod(m) {
+    return this.variable(route.summary)
+  }
+
+  httpMethod(m: string): string {
     return m.toUpperCase()
-  },
-  operationParams(route, anonymousRequestBodyName) {
+  }
+
+  operationParams(route: OperationObject, bodyName: string): string {
     let x: string[] = []
 
     if (route.parameters) {
@@ -89,10 +114,10 @@ const kotlinTarget: TargetObject = {
         switch (param.in) {
         case "path":
           // tslint:disable-next-line:max-line-length
-          return `@Path("${param.name}") ${kotlinTarget.variable(param.name)}: ${resolveSchemaType(kotlinTarget, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          return `@Path("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
         case "query":
           // tslint:disable-next-line:max-line-length
-          return `@Query("${param.name}") ${kotlinTarget.variable(param.name)}: ${resolveSchemaType(kotlinTarget, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          return `@Query("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
         default:
           // tslint:disable-next-line:max-line-length
           throw new Error(`Unhandled parameter type: ${param.in}, route: ${JSON.stringify(route.parameters)}`)
@@ -107,55 +132,51 @@ const kotlinTarget: TargetObject = {
         const content = requestBody.content
         const k = Object.keys(content)[0]
         // tslint:disable-next-line:max-line-length
-        x.push(`@Body body: ${resolveSchemaType(kotlinTarget, (<OpenApiGenSchema>content[k].schema), anonymousRequestBodyName)}`)
+        x.push(`@Body body: ${resolveSchemaType(this, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
       }
     }
 
     return `(${x.join(",\n        ")})`
-  },
-  isHashable(v) {
+  }
+
+  isHashable(v: string): boolean {
     return true
-  },
-  generate({ config, security, name, groups, models, servers }) {
+  }
+
+  generate(args: GenerateArguments) {
     return {
-      "Generated.kt": apiTmpl({
-        config,
-        security,
-        name,
-        groups,
-        models,
-        servers,
-      }),
+      "Generated.kt": apiTmpl(args),
     }
-  },
-  url(u) {
+  }
+
+  url(u: string): string {
     if (!u.endsWith("/")) {
       return `${u}/`
     }
     return u
-  },
-  pathUrl(u) {
+  }
+
+  pathUrl(u: string): string {
     if (u.startsWith("/")) {
       return u.substring(1)
     }
     return u
-  },
-  servers(s) {
+  }
+
+  servers(s: ServerObject[]): TargetServer[] {
     return s.map((x, i) => ({
-      url: kotlinTarget.url(x.url),
-      description: kotlinTarget.cls(x.description || `default${i}`),
+      url: this.url(x.url),
+      description: this.cls(x.description || `default${i}`),
       variables: _.map(x.variables, (v, k) => {
         // tslint:disable-next-line:max-line-length
-        return `val ${kotlinTarget.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `val ${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: kotlinTarget.variable(k),
+          value: this.variable(k),
         }
       }),
     }))
-  },
+  }
 }
-
-module.exports = kotlinTarget

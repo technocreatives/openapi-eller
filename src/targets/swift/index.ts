@@ -3,8 +3,19 @@ import _ from "lodash"
 import hbs from "handlebars"
 
 import { typeResolvers, resolveSchemaType } from "targets"
-import { TargetObject, OpenApiGenSchema } from "types"
-import { ParameterObject } from "openapi3-ts"
+import {
+  Target,
+  OpenApiGenSchema,
+  TargetTypeMap,
+  TargetServer,
+  GenerateArguments
+} from "types"
+import {
+  SchemaObject,
+  OperationObject,
+  ServerObject,
+  ParameterObject
+} from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -17,14 +28,10 @@ const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8")
 // After the first character, digits and combining Unicode characters are also allowed.
 // const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-const swiftTarget: TargetObject = {
-  types: typeResolvers("swift"),
-  variable(uncheckedName) {
-    let name = uncheckedName
-    if (typeof name === "number") {
-      name = uncheckedName.toString()
-    }
-    
+export default class SwiftTarget extends Target {
+  types: TargetTypeMap = typeResolvers("swift")
+
+  variable(name: string): string {
     if (/^\d+$/.test(name)) {
       if (name === "0") {
         return "zero"
@@ -44,8 +51,9 @@ const swiftTarget: TargetObject = {
     }
    
     return hasAt ? "_" + newName : newName
-  },
-  cls(name) {
+  }
+
+  cls(name: string, isNested?: boolean | undefined): string {
     const hasAt = name.startsWith("@")
 
     const newName = _.flow([_.camelCase, _.upperFirst])(name)
@@ -53,68 +61,84 @@ const swiftTarget: TargetObject = {
       return (hasAt ? "_" + newName : newName + "_")
     }
     return hasAt ? "_" + newName : newName
-  },
-  enumKey(key) { return swiftTarget.variable(key) },
-  oneOfKey(key) { return swiftTarget.variable(key) },
-  optional(type) {
+  }
+
+  enumKey(key: string): string { return this.variable(key) }
+
+  oneOfKey(key: string): string { return this.variable(key) }
+
+  optional(type: string): string {
     return `${type}?`
-  },
-  isHashable(type) {
+  }
+
+  isHashable(type: string): boolean {
     if (type.startsWith("[")) {
       return false
     }
     return true
-  },
-  operationId(route) {
+  }
+
+  operationId(route: SchemaObject): string {
     if (route.operationId) {
-      return swiftTarget.variable(route.operationId)
+      return this.variable(route.operationId)
     }
 
-    return swiftTarget.variable(route.summary)
-  },
-  httpMethod(m) {
+    return this.variable(route.summary)
+  }
+
+  httpMethod(m: string): string {
     return m
-  },
-  operationParams(route, hasDefaults) {
+  }
+
+  private operationParamsImpl(route: OperationObject, bodyName: string, hasDefaults: boolean = false): string {
     if (!route.parameters) {
       return ""
     }
     const x = route.parameters.map((p) => {
       const param = p as ParameterObject
       const schema = param.schema as OpenApiGenSchema
-      // tslint:disable-next-line:max-line-length
-      return `${swiftTarget.variable(param.name)}: ${resolveSchemaType(swiftTarget, schema, param.name)}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
+      const variable = this.variable(param.name)
+      const type = resolveSchemaType(this, schema, param.name)
+      return `${variable}: ${type}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
     })
     
     if (x.length === 0) {
       return ""
     }
     return `${x.join(", ")}`
-  },
-  operationParamsDefaults(route) {
-    return swiftTarget.operationParams(route, "true")
-  },
-  operationArgs(route) {
+  }
+
+  operationParams(route: OperationObject, bodyName: string): string {
+    return this.operationParamsImpl(route, bodyName)
+  }
+
+  operationParamsDefaults(route: OperationObject, bodyName: string): string | undefined {
+    return this.operationParamsImpl(route, bodyName, true)
+  }
+
+  operationArgs(route: OperationObject, bodyName: string): string | undefined {
     if (!route.parameters) {
       return ""
     }
-    const x = route.parameters.map(p => swiftTarget.variable((<ParameterObject>p).name))
+    const x = route.parameters.map(p => this.variable((<ParameterObject>p).name))
     if (x.length === 0) {
       return ""
     }
     return `(${x.join(", ")})`
-  },
-  operationKwargs(route) {
+  }
+
+  operationKwargs(route: OperationObject, bodyName: string): string | undefined {
     if (!route.parameters) {
       return ""
     }
-    const x = route.parameters.map(p => swiftTarget.variable((<ParameterObject>p).name))
+    const x = route.parameters.map(p => this.variable((<ParameterObject>p).name))
     if (x.length === 0) {
       return ""
     }
     return `(${x.map(xx => `${xx}: ${xx}`).join(", ")})`
-  },
-  requestParams(route) {
+  }
+  
+  requestParams(route: OperationObject, bodyName: string): string | undefined {
     // Generate query params
     const indent = "            "
 
@@ -128,7 +152,7 @@ const swiftTarget: TargetObject = {
         return
       }
 
-      return `__params["${param.name}"] = ${swiftTarget.variable(param.name)}`
+      return `__params["${param.name}"] = ${this.variable(param.name)}`
     }).filter(x => x != null)
     
     if (q.length > 0) {
@@ -140,51 +164,47 @@ ${indent}return .requestParameters(parameters: __params, encoding: URLEncoding.d
     }
 
     return "return .requestPlain"
-  },
-  fieldDoc(doc) {
+  }
+
+  fieldDoc(doc: OpenApiGenSchema): string {
     return `// ${doc}`
-  },
-  modelDoc(doc) {
+  }
+
+  modelDoc(doc: OpenApiGenSchema): string {
     return `// ${doc}`
-  },
-  generate({ config, security, name, groups, models, servers }) {
+  }
+
+  generate(args: GenerateArguments) {
     return {
-      // TODO: check if this name is ok
-      "api.swift": apiTmpl({
-        config,
-        security,
-        name,
-        groups,
-        models,
-        servers,
-      }),
+      "Generated.swift": apiTmpl(args)
     }
-  },
-  url(u) {
-    return u.replace(/\{(.*?)\}/g, (m, p1) => `\\(${swiftTarget.variable(p1)})`)
-  },
-  pathUrl(u) {
-    return swiftTarget.url(u)
-  },
-  servers(servers) {
+  }
+
+  url(u: string): string {
+    return u.replace(/\{(.*?)\}/g, (m, p1) => `\\(${this.variable(p1)})`)
+  }
+
+  pathUrl(u: string): string {
+    return this.url(u)
+  }
+
+  servers(servers: ServerObject[]): TargetServer[] {
     return servers.map((x, i) => ({
-      url: swiftTarget.url(x.url),
-      description: swiftTarget.variable(x.description || `standard${i === 0 ? "" : i}`),
+      url: this.url(x.url),
+      description: this.variable(x.description || `standard${i === 0 ? "" : i}`),
       arguments: _.map(x.variables, (v, k) => {
-        return `let ${swiftTarget.variable(k)}`
+        return `let ${this.variable(k)}`
       }).join(",\n        "),
       parameters: _.map(x.variables, (v, k) => {
-        return `${swiftTarget.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: swiftTarget.variable(k),
+          value: this.variable(k),
         }
       }),
       variables: "",
     }))
-  },
+  }
 }
-
-export default swiftTarget

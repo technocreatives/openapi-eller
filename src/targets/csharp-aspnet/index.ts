@@ -2,43 +2,35 @@ import fs from "fs"
 import _ from "lodash"
 import hbs from "handlebars"
 
-import csharpTarget from "../csharp"
+import CSharpTarget from "../csharp"
 import { resolveSchemaType } from "targets"
-import { TargetObject, OpenApiGenSchema } from "types"
-import { ParameterObject, RequestBodyObject } from "openapi3-ts"
+import { OpenApiGenSchema, GenerateArguments } from "types"
+import { ParameterObject, RequestBodyObject, OperationObject } from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
-const aspnetTarget = Object.assign({}, csharpTarget, {
-  generate({ config, security, name, groups, models, servers }) {
+export default class AspNetTarget extends CSharpTarget {
+  generate(args: GenerateArguments) {
     return {
-      // TODO: check if this name is ok
-      "api.cs": apiTmpl({
-        config,
-        security,
-        name,
-        groups,
-        models,
-        servers,
-      }),
+      "Generated.cs": apiTmpl(args)
     }
-  },
+  }
 
-  returnType(type) {
+  returnType(type: string): string {
     if (type === "void") {
       return "void"
     }
 
     return `JsonResult<${type}>`
-  },
+  }
 
-  operationParams(route, anonymousRequestBodyName) {
+  operationParams(route: OperationObject, bodyName: string): string {
     let x: string[] = []
     
     if (route.parameters) {
       const params = route.parameters as ParameterObject[]
       x = params.map((p) => {
-        const type = resolveSchemaType(aspnetTarget, (<OpenApiGenSchema>p.schema), p.name)
+        const type = resolveSchemaType(this, (<OpenApiGenSchema>p.schema), p.name)
         
         const hasQMark = type === "DateTime" 
           || (type !== "string" && type.toLowerCase() === type) 
@@ -55,7 +47,7 @@ const aspnetTarget = Object.assign({}, csharpTarget, {
       if (k) {
         const content = (<RequestBodyObject>route.requestBody).content[k]
         // tslint:disable-next-line:max-line-length
-        x.push(`${resolveSchemaType(aspnetTarget, (<OpenApiGenSchema>content.schema), anonymousRequestBodyName)} body`)
+        x.push(`${resolveSchemaType(this, (<OpenApiGenSchema>content.schema), bodyName)} body`)
       }
     }
 
@@ -64,9 +56,5 @@ const aspnetTarget = Object.assign({}, csharpTarget, {
     }
 
     return `(${x.join(", ")})`
-  },
-
-  __name: "aspnet",
-} as Partial<TargetObject>)
-
-export default aspnetTarget
+  }
+}

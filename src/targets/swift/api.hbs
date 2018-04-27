@@ -5,14 +5,29 @@ import RxSwift
 
 // Generated. Do not edit.
 
+public protocol {{{name}}}Interceptor: class {
+    var queryParameters: [String: String] { get }
+    var headers: [String: String] { get }
+}
+
+extension {{{name}}}Interceptor {
+    public var queryParameters: [String: String] {
+        return [:]
+    }
+    
+    public var headers: [String: String] {
+        return [:]
+    }
+}
+
 {{#each security}}
 {{#if isApiKey}}
-public struct {{{../name}}}{{{name}}} {
+public class {{{../name}}}{{{name}}}Interceptor {
     let token: String
 
 {{#if inHeader}}
     var headers: [String: String] {
-        return ["{{{key}}}": "Bearer \(token)"]
+        return ["{{{key}}}": token]
     }
 {{/if}}
 {{#if inQuery}}
@@ -20,11 +35,15 @@ public struct {{{../name}}}{{{name}}} {
         return ["{{{key}}}": token]
     }
 {{/if}}
+
+    public init(token: String) {
+        self.token = token
+    }
 }
 
 {{/if}}
 {{#if isOAuth2}}
-public class {{{../name}}}{{{name}}}OAuth {
+public class {{{../name}}}{{{name}}}OAuthInterceptor {
     private let authorizeURL = URL(string: "{{authorizationUrl}}")!
     private let accessTokenURL = URL(string: "{{tokenUrl}}")!
 {{#if refreshUrl}}
@@ -80,8 +99,17 @@ fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
         let newEndpointClosure: EndpointClosure = { target in
             let httpHeader = headers.merging(target.headers ?? [:], uniquingKeysWith: { _, new in new })
             
+            var urlComponents = URLComponents(string: baseURL.absoluteString.appending(target.path))!
+            for (k, v) in queryParameters {
+                urlComponents.queryItems?.append(URLQueryItem(name: k, value: v))
+            }
+            
+            guard let url = urlComponents.url?.absoluteString else {
+                fatalError("Can not convert components to URL for \(target.path), with query parameters: \(queryParameters)")
+            }
+            
             return Endpoint(
-                url: baseURL.absoluteString.appending(target.path),
+                url: url,
                 sampleResponseClosure: { return .networkResponse(200, Data()) },
                 method: target.method,
                 task: target.task,

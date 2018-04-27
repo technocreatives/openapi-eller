@@ -7,7 +7,7 @@ import path from "path"
 import { 
   OpenApiGenObject, 
   SecuritySchemeType, 
-  TargetObject, 
+  Target, 
   ParameterLocation, 
   SecuritySchemeObjectScheme,
   TargetSecuritySchemes,
@@ -24,7 +24,7 @@ import {
   OperationObject, 
   SchemaObject,
   ResponseObject,
-  ResponsesObject,
+  ResponsesObject
 } from "openapi3-ts"
 
 const { resolveSchemaType, resolveType } = require("./targets")
@@ -90,7 +90,7 @@ function loadYamlFile(yamlFilePath: string) {
 
 function generateSecuritySchemes(
   tree: OpenApiGenObject, 
-  target: TargetObject,
+  target: Target,
 ): {}[] {
   const security: TargetSecuritySchemes[] = []
 
@@ -153,7 +153,7 @@ function generateSecuritySchemes(
 
 function generateModels(
   tree: OpenApiGenObject, 
-  target: TargetObject,
+  target: Target,
 ): { [key: string]: TargetModel } {
   if (!tree || tree.components == null) {
     return {}
@@ -234,8 +234,8 @@ function generateModels(
         isEnum: prop.enum != null,
         isOneOf: prop.oneOf != null,
         isOptional: schema.required ? schema.required.indexOf(key) < 0 : true,
-        format: target.format ? target.format(prop) : null,
-        isNameEqualToKey: false,
+        format: target.format(prop),
+        isNameEqualToKey: false
       }
 
       fieldObject[key].isNameEqualToKey = fieldObject[key].name === key
@@ -258,14 +258,14 @@ function generateModels(
         const enumDef = schemaProperties[key].enum
         
         if (oneOf && oneOf[0]) {
-          // TODO: check if this is ok name in case interface method is missing
-          name = target.interface ? target.interface(baseName) : baseName
-          const discriminator = schemaProperties[key].discriminator
+          name = target.interface(baseName) || baseName
+          // There's a bug with the OpenAPI specification that doesn't allow string discriminators
+          const discriminator = schemaProperties[key].discriminator as any as string
           const oneOfProperties = oneOf[0].properties
-          let firstOne: OpenApiGenSchema | null = null
+          let firstOne: OpenApiGenSchema | undefined
           
           if (oneOfProperties && discriminator) {
-            firstOne = oneOfProperties[discriminator.propertyName] as OpenApiGenSchema
+            firstOne = oneOfProperties[discriminator] as OpenApiGenSchema
           }
           const values = oneOf.map((o) => {
             const v = {
@@ -294,9 +294,7 @@ function generateModels(
               isOneOf: true,
               isEnum: false,
               discriminatorType: firstOne.key,
-              discriminatorVariable: target.variable(
-                discriminator ? discriminator.propertyName : "",
-              ),
+              discriminatorVariable: target.variable(discriminator)
             }
           } else {
             // tslint:disable-next-line:max-line-length
@@ -413,7 +411,7 @@ function generateModels(
 
 function generateEndpoints(
   tree: OpenApiGenObject, 
-  target: TargetObject, 
+  target: Target, 
   config: ConfigObject,
 ): TargetEndpointsGroup[] | null {
   const isGroupingEnabled = config.useGroups || false
@@ -422,10 +420,13 @@ function generateEndpoints(
     const successResponse: ResponseObject = _.find(
       responses, 
       (responseObject: ResponseObject, statusCode) => {
-        if (statusCode === "default") {
+        const statusCodeInt = parseInt(statusCode, 10)
+
+        if (Number.isNaN(statusCodeInt)) {
           return false
         }
-        return parseInt(statusCode, 10) >= 200 && parseInt(statusCode, 10) <= 299
+
+        return statusCodeInt >= 200 && statusCodeInt <= 299
       })
     
     if (!successResponse) {
@@ -512,18 +513,11 @@ function generateEndpoints(
         //     ? target.security(operationObject.security || [])
         //     : null,
         operationParams: target.operationParams(operationObject, anonymousReqBodyName),
-        operationParamsDefaults: target.operationParamsDefaults
-            ? target.operationParamsDefaults(operationObject, anonymousReqBodyName)
-            : target.operationParams(operationObject, anonymousReqBodyName),
-        operationArgs: target.operationArgs
-            ? target.operationArgs(operationObject, anonymousReqBodyName)
-            : null,
-        operationKwargs: target.operationKwargs
-            ? target.operationKwargs(operationObject, anonymousReqBodyName)
-            : null,
-        requestParams: target.requestParams
-            ? target.requestParams(operationObject, anonymousReqBodyName)
-            : null,
+        operationParamsDefaults: target.operationParamsDefaults(operationObject, anonymousReqBodyName)
+            || target.operationParams(operationObject, anonymousReqBodyName),
+        operationArgs: target.operationArgs(operationObject, anonymousReqBodyName),
+        operationKwargs: target.operationKwargs(operationObject, anonymousReqBodyName),
+        requestParams: target.requestParams(operationObject, anonymousReqBodyName)
       })
     })
   })
@@ -548,9 +542,9 @@ async function start(
     throw new Error("Did not find supported version or `openapi` field.")
   }
 
-  const targetObj = require(`${__dirname}/targets/${target}`) as TargetObject
-  // TODO: oh god this is ugly.
-  targetObj.config = config
+  const targetClass = require(`${__dirname}/targets/${target}`).default as
+    new (config: ConfigObject) => Target
+  const targetObj = new targetClass(config)
   const models = generateModels(tree, targetObj)
   const groups = generateEndpoints(tree, targetObj, config)
 

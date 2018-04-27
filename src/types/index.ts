@@ -5,7 +5,6 @@ import {
   SecuritySchemeObject,
   OAuthFlowObject,
   ReferenceObject,
-  DiscriminatorObject,
   SecurityRequirementObject,
   OperationObject,
   ServerObject,
@@ -70,6 +69,67 @@ export interface ConfigObject {
   }}
   useGroups?: boolean
   include?: string[]
+}
+
+export abstract class Target {
+  config: ConfigObject
+
+  constructor(config: ConfigObject) {
+    this.config = config
+  }
+
+  abstract types: TargetTypeMap
+
+  abstract cls(key: string, isNested?: boolean): string
+  abstract enumKey(string: string): string
+  abstract oneOfKey(string: string): string
+  abstract modelDoc(schema: OpenApiGenSchema): string | undefined
+  abstract fieldDoc(schema: OpenApiGenSchema): string | undefined
+  abstract variable(basename: string): string
+  abstract isHashable(type: string): boolean
+  abstract operationId(route: SchemaObject): string
+  abstract pathUrl(routePath: string): string
+  abstract httpMethod(method: string): string
+  abstract url(thing: string): string
+  abstract servers(servers: ServerObject[]): TargetServer[]
+  abstract generate(args: GenerateArguments): { [filename: string]: string }
+  abstract operationParams(route: OperationObject, bodyName: string): string
+  
+  operationParamsDefaults(route: OperationObject, bodyName: string): string | undefined {
+    return
+  }
+  
+  operationArgs(route: OperationObject, bodyName: string): string | undefined {
+    return
+  }
+
+  operationKwargs(route: OperationObject, bodyName: string): string | undefined {
+    return
+  }
+
+  requestParams(route: OperationObject, bodyName: string): string | undefined {
+    return
+  }
+
+  returnType(schemaType: string): string {
+    return schemaType
+  }
+
+  optional(type: string): string {
+    return type
+  }
+
+  format(schema: OpenApiGenSchema): string | undefined {
+    return
+  }
+
+  interface(basename: string): string | undefined {
+    return
+  }
+
+  enum(basename: string): string {
+    return basename
+  }
 }
 
 export interface TargetObject {
@@ -145,19 +205,19 @@ export interface TargetModel {
   interfaces: string[]
   fields: {[fieldName: string]: TargetField}
   enums: {[key: string]: EnumObject}
-  doc: string
+  doc: string | undefined
 }
 
 export interface TargetField {
   name: string
   type: string
   key: string
-  doc: string
+  doc: string | undefined
   isHashable: boolean
   isEnum: boolean
   isOneOf: boolean
   isOptional: boolean
-  format: string | null
+  format: string | undefined
   isNameEqualToKey: boolean
 }
 
@@ -171,7 +231,7 @@ export interface EnumObject {
   type: EnumObjectType
   isOneOf: boolean
   isEnum: boolean
-  discriminator?: DiscriminatorObject
+  discriminator?: string
   discriminatorType?: string
   discriminatorVariable?: string
 }
@@ -193,9 +253,9 @@ export interface TargetEndpoint {
   // }[] | null;
   operationParams: string
   operationParamsDefaults: string
-  operationArgs: string | null
-  operationKwargs: string | null
-  requestParams: string | null
+  operationArgs: string | undefined
+  operationKwargs: string | undefined
+  requestParams: string | undefined
 }
 
 export interface TargetEndpointsGroup {

@@ -3,8 +3,19 @@ import _ from "lodash"
 import hbs from "handlebars"
 
 import { typeResolvers, resolveSchemaType } from "targets"
-import { TargetObject, OpenApiGenSchema } from "types"
-import { ParameterObject } from "openapi3-ts"
+import {
+  Target,
+  OpenApiGenSchema,
+  TargetTypeMap,
+  TargetServer,
+  GenerateArguments
+} from "types"
+import {
+  SchemaObject,
+  OperationObject,
+  ServerObject,
+  ParameterObject
+} from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -16,24 +27,28 @@ function genComment(indent: number, content: string): string {
 
 const reservedWords: string[] = []
 
-const csharpTarget: TargetObject = {
-  types: typeResolvers("csharp"),
-  modelDoc(defn) {
+export default class CSharpTarget extends Target {
+  types: TargetTypeMap = typeResolvers("csharp")
+
+  modelDoc(defn: OpenApiGenSchema): string | undefined {
     if (defn.description) {
       return genComment(4, defn.description)
     }
     return ""
-  },
-  fieldDoc(defn) {
+  }
+
+  fieldDoc(defn: OpenApiGenSchema): string | undefined {
     if (defn.description) {
       return genComment(8, defn.description)
     }
     return ""
-  },
-  variable(name) {
-    return csharpTarget.cls(name)
-  },
-  cls(name, isNested) {
+  }
+
+  variable(name: string): string {
+    return this.cls(name)
+  }
+
+  cls(name: string, isNested?: boolean | undefined): string {
     const hasAt = name.startsWith("@")
     let candidate
 
@@ -45,14 +60,17 @@ const csharpTarget: TargetObject = {
     }
 
     return isNested ? `${candidate}Type` : candidate
-  },
-  enum(name) {
-    return `${csharpTarget.cls(name)}Type`
-  },
-  interface(name) {
-    return `I${csharpTarget.cls(name)}`
-  },
-  enumKey(key) {
+  }
+
+  enum(name: string): string {
+    return `${this.cls(name)}Type`
+  }
+
+  interface(name: string): string {
+    return `I${this.cls(name)}`
+  }
+
+  enumKey(key: string): string {
     const ks = "" + key
     if (/^\d+$/.test(ks)) {
       if (ks === "0") {
@@ -62,81 +80,82 @@ const csharpTarget: TargetObject = {
         return "One"
       }
       
-      return csharpTarget.cls("_" + key)
+      return this.cls("_" + key)
     }
-    return csharpTarget.cls(key)
-  },
-  oneOfKey(key) {
-    return csharpTarget.cls(key)
-  },
-  optional(type) {
+    return this.cls(key)
+  }
+
+  oneOfKey(key: string): string {
+    return this.cls(key)
+  }
+
+  optional(type: string): string {
     return type
-  },
-  operationId(route) {
+  }
+
+  operationId(route: SchemaObject): string {
     if (route.operationId) {
-      return csharpTarget.variable(route.operationId)
+      return this.variable(route.operationId)
     }
 
-    return csharpTarget.variable(route.summary)
-  },
-  httpMethod(m) {
+    return this.variable(route.summary)
+  }
+
+  httpMethod(m: string): string {
     return `Http${_.upperFirst(m)}`
-  },
-  operationParams(route) {
+  }
+
+  operationParams(route: OperationObject, bodyName: string): string {
     if (!route || !route.parameters) {
       throw new Error("Missing parameter information")
     }
     const params = route.parameters as ParameterObject[]
     const x = params.map((p) => {
       // tslint:disable-next-line:max-line-length
-      return `${resolveSchemaType(csharpTarget, (<OpenApiGenSchema>p.schema), p.name)} ${_.camelCase(p.name)}`
+      return `${resolveSchemaType(this, (<OpenApiGenSchema>p.schema), p.name)} ${_.camelCase(p.name)}`
     })
     return `(${x.join(",\n            ")})`
-  },
-  isHashable(v) {
+  }
+
+  isHashable(v: string): boolean {
     return v !== "string" && v.toLowerCase() === v
-  },
-  generate({ config, security, name, groups, models, servers }) {
+  }
+
+  generate(args: GenerateArguments) {
     return {
-      // TODO: check if this name is ok
-      "api.cs": apiTmpl({
-        config,
-        security,
-        name,
-        groups,
-        models,
-        servers,
-      }),
+      "Generated.cs": apiTmpl(args)
     }
-  },
-  url(u) {
+  }
+
+  url(u: string): string {
     if (!u.endsWith("/")) {
       return `${u}/`
     }
     return u
-  },
-  pathUrl(u) {
+  }
+
+  pathUrl(u: string): string {
     if (u.startsWith("/")) {
       return u.substring(1)
     }
     return u
-  },
-  servers(s) {
+  }
+
+  servers(s: ServerObject[]): TargetServer[] {
     return s.map((x, i) => ({
-      url: csharpTarget.url(x.url),
-      description: csharpTarget.cls(x.description || `default${i}`),
+      url: this.url(x.url),
+      description: this.cls(x.description || `default${i}`),
       variables: _.map(x.variables, (v, k) => {
         // tslint:disable-next-line:max-line-length
-        return `val ${csharpTarget.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `val ${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {
           key: `{${k}}`,
-          value: csharpTarget.variable(k),
+          value: this.variable(k),
         }
       }),
     }))
-  },
+  }
 }
 
-export default csharpTarget

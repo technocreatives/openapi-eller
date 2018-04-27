@@ -1,6 +1,6 @@
 import yaml from "js-yaml"
 import fs from "fs"
-import { TargetObject, TargetTypeMap, TargetFormatMap, OpenApiGenSchema } from "types"
+import { Target, TargetTypeMap, TargetFormatMap, OpenApiGenSchema } from "types"
 
 function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
   const targetTypeMapFilePath = fs.readFileSync(`${__dirname}/${target}/types.yaml`, "utf8")
@@ -22,7 +22,7 @@ function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): Tar
   return types
 }
 
-function resolveSchemaType(target: TargetObject, schema: OpenApiGenSchema, name: string) {
+function resolveSchemaType(target: Target, schema: OpenApiGenSchema, name: string) {
   if (schema == null) {
     return resolveTypeImpl(target, null, null, null, false, false)
   }
@@ -31,7 +31,7 @@ function resolveSchemaType(target: TargetObject, schema: OpenApiGenSchema, name:
 }
 
 function resolveType(
-  target: TargetObject, 
+  target: Target, 
   schema: OpenApiGenSchema, 
   name: string, 
   prop: OpenApiGenSchema,
@@ -45,7 +45,7 @@ function resolveType(
 }
 
 function resolveTypeImpl(
-  target: TargetObject, 
+  target: Target, 
   schema: OpenApiGenSchema | null, 
   name: string | null, 
   prop: OpenApiGenSchema | null, 
@@ -68,7 +68,7 @@ function resolveTypeImpl(
   
   let candidate
   
-  if (type === "object" && prop != null && prop.additionalProperties && format) {
+  if (type === "object" && prop != null && prop.additionalProperties) {
     const value = resolveTypeImpl(
       target, 
       schema, 
@@ -78,7 +78,7 @@ function resolveTypeImpl(
       false,
     )
     candidate = types.map
-      .replace("{key}", types["string"][format] || types["string"]["null"])
+      .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
   } else if (prop && prop.key) {
     if (prop.title) {
@@ -100,8 +100,7 @@ function resolveTypeImpl(
     
   } else if (prop && prop.oneOf && name) {
     // Treat this as a very special enum :)
-    // TODO: check if this name is ok if interface method is missing
-    candidate = target.interface ? target.interface(name) : name
+    candidate = target.interface(name) || target.cls(name)
   } else if (type === "array") {
     const items = (prop != null ? prop.items : null) as OpenApiGenSchema
 
