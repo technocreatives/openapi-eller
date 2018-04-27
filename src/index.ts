@@ -216,14 +216,14 @@ function generateModels(
       const baseName = prop.title || key
 
       const type = resolveType(target, schema, key, prop)
+      const { fieldRenames } = target.config
 
       let name
-      if (target.config
-        && target.config.fieldRenames 
-        && target.config.fieldRenames[schema.key] 
-        && target.config.fieldRenames[schema.key][key]) {
+      if (fieldRenames 
+        && fieldRenames[schema.key] 
+        && fieldRenames[schema.key][key]) {
 
-        name = target.config.fieldRenames[schema.key][key]
+        name = fieldRenames[schema.key][key]
       } else {
         name = target.variable(baseName)
       }
