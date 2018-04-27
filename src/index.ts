@@ -205,8 +205,10 @@ function generateModels(
       throw new Error(`No properties found for schema '${schema.key}'`)
     }
 
-    const fields: { [key: string]: TargetField } = Object.keys(schema.properties).reduce((
-      fieldObject: { [key: string]: TargetField },
+    type TargetFieldMap = { [key: string]: TargetField }
+
+    const fields: TargetFieldMap = Object.keys(schema.properties).reduce((
+      fieldObject: TargetFieldMap,
       key: string
     ) => {
       if (!schema.properties) {
