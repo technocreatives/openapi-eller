@@ -62,7 +62,7 @@ export default class KotlinTarget extends Target {
 
   enumKey(key: string): string {
     const ks = "" + key
-    if (/^\d+$/.test(ks)) {
+    if (/^\d+/.test(ks)) {
       if (ks === "0") {
         return "ZERO"
       }
@@ -72,6 +72,7 @@ export default class KotlinTarget extends Target {
       
       return upperSnake("_" + key)
     }
+
     return upperSnake(key)
   }
 
@@ -161,6 +162,14 @@ export default class KotlinTarget extends Target {
       return u.substring(1)
     }
     return u
+  }
+
+  returnType(type: string): string {
+    if (type == "Unit") {
+      return "Completable"
+    }
+
+    return `Single<${type}>`
   }
 
   servers(s: ServerObject[]): TargetServer[] {

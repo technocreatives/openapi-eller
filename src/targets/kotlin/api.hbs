@@ -5,11 +5,11 @@ package {{{config.package}}}
 // Generated. Do not edit.
 
 import android.app.Activity
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.support.customtabs.CustomTabsIntent
-import android.support.v7.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.TypeAdapter
@@ -18,22 +18,25 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
-import io.reactivex.Observable
-import io.reactivex.ObservableEmitter
+import io.reactivex.Completable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import net.openid.appauth.*
 import okhttp3.*
 import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
-import java.io.IOException
-import java.net.URI
 import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit
+{{#if config.imports}}
+{{#each config.imports}}
+import {{{this}}}
+{{/each}}
+{{/if}}
 
 @Target(AnnotationTarget.TYPE)
 @MustBeDocumented
@@ -105,175 +108,123 @@ class {{{../name}}}{{{name}}}Interceptor(private val token: String): Interceptor
         </intent-filter>
     </activity>
  */
-class {{{name}}}OAuthActivity : AppCompatActivity() {
+class {{{name}}}OAuthActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        {{!-- startActivity({{{name}}}OAuthCompletionActivity) --}}
-        {{{name}}}OAuth.subject.onNext(intent.data)
+
+        val response = AuthorizationResponse.fromIntent(intent)
+        val exception = AuthorizationException.fromIntent(intent)
+        {{{name}}}OAuth.subject.onNext(response to exception)
         finish()
     }
 }
 
-class {{{name}}}OAuth(val clientId: String, val clientSecret: String, val redirectUri: String) {
+class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
     companion object {
-        private val RC = Math.abs({{{name}}}OAuth.hashCode() and 0xFFFF)
-
-        internal val subject = PublishSubject.create<Uri>()
+        internal val subject =
+            PublishSubject.create<Pair<AuthorizationResponse?, AuthorizationException?>>()
     }
     
-    enum class Scope(val value: String) {
+    enum class Scope(override val value: String): JsonEnum {
 {{#each scopes}}
-        {{{name}}}("{{{value}}}"){{#unless @last}},{{/unless}}
+        {{{name}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
 {{/each}}
+
+        override fun toString() = value
     }
 
-    private val authorizeUri = Uri.parse("{{authorizationUrl}}")!!
-    private val accessTokenUri = HttpUrl.parse("{{tokenUrl}}")!!
+    val authorizeUri = Uri.parse("{{{authorizationUrl}}}")!!
+    val accessTokenUri = Uri.parse("{{{tokenUrl}}}")!!
 {{#if refreshUrl}}
-    private val refreshUri = HttpUrl.parse("{{refreshUrl}}")!!
+    val refreshUri = Uri.parse("{{{refreshUrl}}}")!!
 {{/if}}
 
-    data class TimestampedTokenResponse(
-            val timestamp: Long,
-            val response: TokenResponse
-    )
+    private val config = AuthorizationServiceConfiguration(authorizeUri, accessTokenUri)
+    private val authActivityClass get() = {{{name}}}OAuthActivity::class.java
 
-    data class TokenResponse(
-            @SerializedName("access_token") val accessToken: String,
-            @SerializedName("token_type") val tokenType: String?,
-            @SerializedName("refresh_token") val refreshToken: String?,
-            val scope: String?,
-            @SerializedName("expires_in") val expiresIn: Int?
-    )
-
-    class OAuthInterceptor(val client: {{{name}}}OAuth,
-                           var tokenResponse: TimestampedTokenResponse,
-                           val onNewToken: (TimestampedTokenResponse) -> Unit
-    ) : Interceptor {
-        override fun intercept(chain: Interceptor.Chain): Response {
-            val req = chain.request()
-            val response = tokenResponse.response
-
-{{#if refreshUrl}}
-            if (response.refreshToken != null && response.expiresIn != null) {
-                val now = System.currentTimeMillis() - 60000
-                val expiryTime = tokenResponse.timestamp + (response.expiresIn * 1000)
-                if (now >= expiryTime) {
-                    val res = client.refreshToken(response.refreshToken).blockingGet()
-                    tokenResponse = res
-                    onNewToken(res)
-                }
-            }
-{{/if}}
-            val newReq = req.newBuilder()
-                    .header("Authorization", "Bearer ${response.accessToken}")
-                    .build()
-            return chain.proceed(newReq)
-        }
-    }
-
-    fun interceptor(response: TimestampedTokenResponse, onNewToken: (TimestampedTokenResponse) -> Unit): OAuthInterceptor =
-            OAuthInterceptor(this, response, onNewToken)
-
-    private fun Call.single(): Single<Response> {
-        return Single.create { single ->
-            single.setCancellable(this::cancel)
-
-            this.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    single.onError(e)
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    try {
-                        single.onSuccess(response)
-                    } catch (t: Throwable) {
-                        single.onError(t)
-                    }
-                }
-            })
-        }
-    }
-
-    fun authorize(activity: Activity, scopes: List<Scope>? = null, scopeDelimiter: String = " "): Single<String> {
-        var authUriBuilder = authorizeUri.buildUpon()
-                .appendQueryParameter("client_id", clientId)
-                .appendQueryParameter("redirect_uri", redirectUri)
-                .appendQueryParameter("response_type", "code")
-
-        if (scopes != null) {
-            authUriBuilder = authUriBuilder.appendQueryParameter("scope",
-                    scopes.joinToString(scopeDelimiter))
-        }
-
-        val authUri = authUriBuilder.build()
-
-        val intent = CustomTabsIntent.Builder()
-                .setShowTitle(false)
-                .build()
-                .intent
-
-        intent.data = authUri
+    fun authorize(activity: Activity, scopes: List<Scope>? = null): Single<AuthState> {
+        val service = AuthorizationService(activity)
 
         val observer = subject
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(AndroidSchedulers.mainThread())
                 .take(1)
-                .doOnNext {
-                    val newIntent = Intent(activity.applicationContext, activity::class.java)
-                    newIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    activity.application.startActivity(newIntent)
-                }
+                .singleOrError()
                 .map {
-                    it.getQueryParameter("code")
-                }.singleOrError()
+                    AuthState(it.first, it.second)
+                }
+                .doFinally { service.dispose() }
 
-        activity.startActivityForResult(intent, RC)
+        val req = AuthorizationRequest.Builder(config,
+                clientId,
+                ResponseTypeValues.CODE,
+                redirectUri)
+                .setScopes(scopes?.map { it.toString() })
+                .build()
+
+        val pendingIntent = PendingIntent.getActivity(
+                activity, 0, Intent(activity, authActivityClass), 0)
+
+        service.performAuthorizationRequest(req, pendingIntent)
 
         return observer
     }
 
-    fun accessToken(code: String): Single<TimestampedTokenResponse> {
-        val body = FormBody.Builder()
-                .add("client_id", clientId)
-                .add("client_secret", clientSecret)
-                .add("grant_type", "authorization_code")
-                .add("redirect_uri", redirectUri)
-                .add("code", code)
+    // This function should only be used during testing to ensure the security of the clientSecret.
+    fun accessToken(activity: Activity, authState: AuthState, clientSecret: String): Single<AuthState> {
+        val code = authState.lastAuthorizationResponse?.authorizationCode ?:
+            return Single.error(Exception("No authorization response in auth state"))
+        
+        val service = AuthorizationService(activity)
+        val config = AuthorizationServiceConfiguration(authorizeUri, accessTokenUri)
+
+        val tokenReq = TokenRequest.Builder(config, clientId)
+                .setAuthorizationCode(code)
+                .setRedirectUri(redirectUri)
                 .build()
 
-        val call = okhttp3.OkHttpClient()
-                .newCall(Request.Builder()
-                        .url(accessTokenUri)
-                        .post(body)
-                        .build())
-
-        return call.single()
-                .map { it.body()?.string()!! }
-                .map { Gson().fromJson(it, TokenResponse::class.java) }
-                .map { TimestampedTokenResponse(System.currentTimeMillis(), it) }
+        return Single.create<AuthState> { emitter ->
+            service.performTokenRequest(tokenReq, ClientSecretPost(clientSecret), { res, ex ->
+                authState.update(res, ex)
+                emitter.onSuccess(authState)
+            })
+        }.doFinally { service.dispose() }
     }
 
-{{#if refreshUrl}}
-    fun refreshToken(refreshToken: String): Single<TimestampedTokenResponse> {
-        val body = FormBody.Builder()
-                .add("client_id", clientId)
-                .add("client_secret", clientSecret)
-                .add("grant_type", "refresh_token")
-                .add("refresh_token", refreshToken)
-                .build()
+    private inner class OAuthInterceptor(
+            private val context: Context,
+            private val authState: AuthState
+    ): Interceptor {
+        private fun refreshTokens(): Pair<String?, String?> {
+            return Single.create<Pair<String?, String?>> { emitter ->
+                val service = AuthorizationService(context)
 
-        val call = okhttp3.OkHttpClient()
-                .newCall(Request.Builder()
-                        .url(refreshUri)
-                        .post(body)
-                        .build())
+                authState.performActionWithFreshTokens(service, { accessToken, idToken, ex ->
+                    when {
+                        ex != null -> emitter.onError(ex)
+                        accessToken != null -> emitter.onSuccess(accessToken to idToken)
+                        else -> emitter.onError(Exception("accessToken is null"))
+                    }
 
-        return call.single().map { it.body()?.string()!! }
-                .map { Gson().fromJson(it, TokenResponse::class.java) }
-                .map { TimestampedTokenResponse(System.currentTimeMillis(), it) }
+                    service.dispose()
+                })
+            }.timeout(30, TimeUnit.SECONDS).blockingGet()
+        }
+
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val (accessToken, idToken) = refreshTokens()
+
+            val req = chain.request().newBuilder()
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .build()
+
+            return chain.proceed(req)
+        }
     }
-{{/if}}
+
+    fun interceptor(context: Context, authState: AuthState): Interceptor {
+        return OAuthInterceptor(context, authState)
+    }
 }
         
 {{/if}}
@@ -294,7 +245,7 @@ private fun createGson(): Gson {
         override fun read(reader: JsonReader): T {
             val s = reader.nextString()
             return type::class.java.enumConstants.first { it.value == s } ?:
-            throw Exception("Invalid value: $s")
+                throw Exception("Invalid value: $s")
         }
     }
 
@@ -353,7 +304,7 @@ interface {{{name}}}Service {
                     .client(interceptors.fold(OkHttpClient.Builder(), { acc, cur -> acc.addInterceptor(cur) }).build())
                     .baseUrl(baseUrl)
                     .addConverterFactory(GsonConverterFactory.create(createGson()))
-                    .addCallAdapterFactory(RxJava2CallAdapterFactory.createWithScheduler(Schedulers.io()))
+                    .addCallAdapterFactory(RxJava2CallAdapterFactory.createAsync())
                     .build()
                     .create({{{name}}}Service::class.java)
     }
@@ -364,22 +315,20 @@ interface {{{name}}}Service {
 {{#each endpoints}}
 
     @{{{httpMethod}}}("{{{url}}}")
-    fun {{{operationId}}}{{{operationParams}}}: Observable<{{{returnType}}}>
+    fun {{{operationId}}}{{{operationParams}}}: {{{returnType}}}
 {{/each}}
 {{/each}}
 }
 
-
-
 {{! Models }}
 {{#each models}}
 {{#if isEnum}}
-enum class {{{name}}}(val value: String) {
+enum class {{{name}}}(override val value: String): JsonEnum {
 {{#each values}}
     {{{key}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
 {{/each}}
 
-    override fun toString() = this.value
+    override fun toString() = value
 }
 {{else}}
 data class {{{name}}}(
@@ -394,10 +343,12 @@ data class {{{name}}}(
 ) : Serializable {
 {{#each enums}}
 {{#if isEnum}}
-    enum class {{{name}}}(val value: String) {
+    enum class {{{name}}}(override val value: String): JsonEnum {
 {{#each values}}
-        {{{key}}}("{{{value}}}"){{#unless @last}},{{/unless}}
+        {{{key}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
 {{/each}}
+
+        override fun toString() = value
     }
 {{/if}}
 {{#if isOneOf}}
