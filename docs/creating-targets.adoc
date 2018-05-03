@@ -19,6 +19,18 @@ A conforming implementation consists of at the very least:
 * Handles all types supported by OpenAPI v3, and preferrably has a mechanism
   for handling well-known formats, and custom extensions for those formats
 
+==== Reserved keywords
+
+Each target must handle reserved keywords in a way that would be considered
+acceptable for a given platform. A general approach is to append an underscore (`_`)
+to a variable or class name. Users have the option of providing field and class name
+overrides in the configuration passed to the generator, so close enough is good
+enough is the approach taken.
+
+Even if a language supports a special way of accessing keywords, such as Swift's
+backtick notation, avoid doing so. It makes actually using the API more painful
+than it needs to be.
+
 ==== Interceptors
 
 All targets must implement an interceptor pattern for handling the
