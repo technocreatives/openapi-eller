@@ -37,7 +37,7 @@ for those targets listed as supported. Behaviour is subject to change between va
 ## Supported targets
 
 - Clients:
-  - JavaScript (browser and backend)
+  - ECMAScript (JS) (browser and backend)
   - Kotlin (Android)
   - Swift
 - Servers:
