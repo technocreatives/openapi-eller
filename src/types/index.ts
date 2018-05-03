@@ -124,12 +124,12 @@ export abstract class Target {
     return
   }
 
-  interface(basename: string): string | undefined {
-    return
+  interface(basename: string): string {
+    return this.cls(basename)
   }
 
   enum(basename: string): string {
-    return basename
+    return this.cls(basename)
   }
 }
 
