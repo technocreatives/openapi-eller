@@ -22,3 +22,5 @@ array: "Vec<{value}>"
 map: "BTreeMap<{key}, {value}>"
 set: "HashSet<{value}>"
 null: ()
+object:
+  null: Any

@@ -23,3 +23,5 @@ array: "[{value}]"
 map: "[{key}: {value}]"
 set: "Set<{value}>"
 null: Void
+object:
+  null: Any
