@@ -18,6 +18,7 @@ import {
 } from "openapi3-ts"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
+const titleCamel = (x: string) => _.upperFirst(_.camelCase(x))
 
 function genComment(indent: number, content: string): string {
   const pre = Array(indent + 1).join(" ")
@@ -52,7 +53,7 @@ export default class CSharpTarget extends Target {
     const hasAt = name.startsWith("@")
     let candidate
 
-    const newName = _.flow([_.camelCase, _.upperFirst])(name)
+    const newName = titleCamel(name)
     if (reservedWords.indexOf(newName) > -1) {
       candidate = `\`${hasAt ? "@" + newName : newName}\``
     } else {
