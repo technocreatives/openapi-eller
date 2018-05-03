@@ -9,7 +9,7 @@ import { ParameterObject } from "openapi3-ts"
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
 const jsTarget: TargetObject = {
-  types: typeResolvers("javascript"),
+  types: typeResolvers("ecmascript"),
   cls(name) {
     return _.upperFirst(_.camelCase(name))
   },

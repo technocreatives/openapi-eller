@@ -66,7 +66,7 @@ annotation, causing the string to be correctly parsed into the most correct data
 
 Some keys are reserved for use by the generator itself (such as `fieldRenames`) but may
 be extended with custom keys for use by targets and are accessible within the templates
-via the `config` key. Examples of this in use include the JavaScript target, where
+via the `config` key. Examples of this in use include the ECMAScript target, where
 different module export styles are used whether or not `es6` or `commonjs` is set to true.
 
 At this stage, configuration is quite rudimentary. There is no support for disjoint values,
