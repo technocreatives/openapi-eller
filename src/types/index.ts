@@ -289,3 +289,5 @@ export interface GenerateArguments {
   groups: TargetEndpointsGroup[] | null
   models: { [key: string]: TargetModel }
 }
+
+export type TargetFieldMap = { [key: string]: TargetField }

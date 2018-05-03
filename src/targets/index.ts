@@ -1,6 +1,11 @@
 import yaml from "js-yaml"
 import fs from "fs"
-import { Target, TargetTypeMap, TargetFormatMap, OpenApiGenSchema } from "types"
+import {
+  Target,
+  TargetTypeMap,
+  TargetFormatMap,
+  OpenApiGenSchema
+} from "types"
 
 function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
   const targetTypeMapFilePath = fs.readFileSync(`${__dirname}/${target}/types.yaml`, "utf8")
@@ -22,7 +27,7 @@ function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): Tar
   return types
 }
 
-function resolveSchemaType(target: Target, schema: OpenApiGenSchema, name: string) {
+function resolveSchemaType(target: Target, schema: OpenApiGenSchema | null, name: string) {
   if (schema == null) {
     return resolveTypeImpl(target, null, null, null, false, false)
   }
@@ -68,6 +73,7 @@ function resolveTypeImpl(
   
   let candidate
   
+  // Format is required here, otherwise additionalProperties loops badly.
   if (type === "object" && prop != null && prop.additionalProperties) {
     const value = resolveTypeImpl(
       target, 
@@ -89,11 +95,14 @@ function resolveTypeImpl(
   } else if (prop && prop.enum) {
     const propTitle = prop.title
 
-    // TODO: check if these names are ok if enum method is missing
+    if ((prop.enum as any).key) {
+      console.error("Enum got a key")
+    }
+
     if (propTitle) {
-      candidate = target.enum ? target.enum(propTitle) : propTitle
+      candidate = target.enum(propTitle)
     } else if (name) {
-      candidate = target.enum ? target.enum(name) : name
+      candidate = target.enum(name)
     } else {
       throw new Error("Unhandled enum naming for " + JSON.stringify(prop))
     }
@@ -134,7 +143,7 @@ function resolveTypeImpl(
     }
   }
 
-  if (!candidate) {
+  if (candidate == null) {
     const key = schema != null ? schema.key : null
     throw new Error(`Got null for schema ${key} for prop ${JSON.stringify(prop)}`)
   }
