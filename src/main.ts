@@ -15,8 +15,9 @@ program
   .description(`Generate API clients and servers for OpenAPI v3 specifications.\n\n  Available targets: ${targets}`)
   .arguments("<target> <input> [config]")
   .option("-o, --output [directory]", "The directory to output to")
+  .option("-d, --debug", "Enable debug.json output")
   .action((target, input, config) => {
-    start(target, input, config, program.output)
+    start(target, input, config, program.output, program.debug)
       .then(() => process.exit(0))
       .catch((err: Error) => {
         console.error(err.stack)

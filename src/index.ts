@@ -200,9 +200,10 @@ async function start(
     name: targetObj.cls(tree.info.title)
   }
 
+  if (isDebug) {
+    fs.writeFileSync("debug.json", JSON.stringify(data, null, 2), "utf8")
+  }
   
-  fs.writeFileSync("debug.json", JSON.stringify(data, null, 2), "utf8")
-
   const files = targetObj.generate(data)
 
   for (const fn in files) {
