@@ -88,11 +88,11 @@ export default class EcmaScriptTarget extends Target {
   }
 
   pathUrl(name: string): string {
-    return name.replace("{", "${")
+    return name.replace(/{/g, "${")
   }
 
   url(thing: string): string {
-    return thing.replace("{", "${")
+    return thing.replace(/{/g, "${")
   }
   
   // security(items) {
