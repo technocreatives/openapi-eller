@@ -35,6 +35,10 @@ an issue on GitHub.
 
 Documentation is still to be done. Sorry!
 
+== Creating Targets
+
+include::creating-targets.adoc[]
+
 // include::intro.adoc[]
 
 == Installation

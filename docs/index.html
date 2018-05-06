@@ -524,9 +524,24 @@ table.CodeRay td.code>pre{padding:0}
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
 <li><a href="#introduction_to_openapi_eller_0_1_0">1. Introduction to openapi-eller 0.1.0</a></li>
-<li><a href="#installation">2. Installation</a></li>
-<li><a href="#quickstart">3. Quickstart</a></li>
-<li><a href="#targets">4. Targets</a></li>
+<li><a href="#creating_targets">2. Creating Targets</a>
+<ul class="sectlevel2">
+<li><a href="#basic_requirements_for_a_conforming_target">2.1. Basic requirements for a conforming target</a>
+<ul class="sectlevel3">
+<li><a href="#basic_api">2.1.1. Basic API</a></li>
+<li><a href="#documentation">2.1.2. Documentation</a></li>
+<li><a href="#reserved_keywords">2.1.3. Reserved keywords</a></li>
+<li><a href="#interceptors">2.1.4. Interceptors</a></li>
+<li><a href="#formatters_and_types">2.1.5. Formatters and Types</a></li>
+<li><a href="#configuration">2.1.6. Configuration</a></li>
+<li><a href="#dependency_policy">2.1.7. Dependency policy</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#installation">3. Installation</a></li>
+<li><a href="#quickstart">4. Quickstart</a></li>
+<li><a href="#targets">5. Targets</a></li>
 </ul>
 </div>
 </div>
@@ -565,19 +580,179 @@ an issue on GitHub.</p>
 </div>
 </div>
 <div class="sect1">
-<h2 id="installation"><a class="link" href="#installation">2. Installation</a></h2>
+<h2 id="creating_targets"><a class="link" href="#creating_targets">2. Creating Targets</a></h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="basic_requirements_for_a_conforming_target"><a class="link" href="#basic_requirements_for_a_conforming_target">2.1. Basic requirements for a conforming target</a></h3>
+<div class="sect3">
+<h4 id="basic_api"><a class="link" href="#basic_api">2.1.1. Basic API</a></h4>
+<div class="paragraph">
+<p>A conforming implementation consists of at the very least:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A top level class—or equivalent—holding methods for each endpoint
+for a given service</p>
+</li>
+<li>
+<p>A top level enum-like class—or equivalent—for holding known
+server endpoints, configurable for the defined variables of that
+server endpoint</p>
+</li>
+<li>
+<p>At least one constructor taking a base URL as a string, and preferably
+another constructor accepting the enum-like class type for servers if
+it makes sense for the provided language</p>
+</li>
+<li>
+<p>Each endpoint provides a return type of an Observable or a Promise/Future,
+preferring the most used solution for the platform, and falling back to
+Rx where that is not specified or is simpler</p>
+</li>
+<li>
+<p>Generates RFC-compliant handlers for OAuth 2 where required</p>
+</li>
+<li>
+<p>Handles all types supported by OpenAPI v3, and preferrably has a mechanism
+for handling well-known formats, and custom extensions for those formats</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="documentation"><a class="link" href="#documentation">2.1.2. Documentation</a></h4>
+<div class="paragraph">
+<p>Several targets require some set-up in order to function. Instead of generating
+entire demo projects, only two things are needed for fully supporting a target
+and assisting those people who use them:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>At the beginning for the file, clearly mark it as generated</p>
+</li>
+<li>
+<p>Below that, document any requirements for using dependencies, such as the
+version requirements, package managers required, imports to be declared
+in other configurations, etc. You may make this copy and pastable chunks
+if you desire to be super-nice.</p>
+</li>
+<li>
+<p>The intro documentation should also include supported configuration elements
+from the JSON, such as <code>{ "es6": true }</code> enabling ES6 modules for ECMAScript,
+which would otherwise only be discoverable by reading the target source code.</p>
+</li>
+<li>
+<p>Documenting dependencies for specific elements on those elements, such as
+the requirement for OAuth activities in Android to specify some things in
+the XML manifest. This should be as copy-pastable as possible.</p>
+</li>
+<li>
+<p>Generate the relevant documentation fields for all endpoints, models and
+fields. This makes the API autocompletable and discoverable in an IDE,
+or allow documentation to be generated with a relevant generator.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="reserved_keywords"><a class="link" href="#reserved_keywords">2.1.3. Reserved keywords</a></h4>
+<div class="paragraph">
+<p>Each target must handle reserved keywords in a way that would be considered
+acceptable for a given platform. A general approach is to append an underscore (<code>_</code>)
+to a variable or class name. Users have the option of providing field and class name
+overrides in the configuration passed to the generator, so close enough is good
+enough is the approach taken.</p>
+</div>
+<div class="paragraph">
+<p>Even if a language supports a special way of accessing keywords, such as Swift&#8217;s
+backtick notation, avoid doing so. It makes actually using the API more painful
+than it needs to be.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="interceptors"><a class="link" href="#interceptors">2.1.4. Interceptors</a></h4>
+<div class="paragraph">
+<p>All targets must implement an interceptor pattern for handling the
+various API key, OAuth and other header and query string mangling
+operations that affect all endpoints.</p>
+</div>
+<div class="paragraph">
+<p>The basic principle is that in your language, it should be possible
+to provide the necessary hooks to modify the headers and query parameters
+to support authentication and other requirements for a given API.</p>
+</div>
+<div class="paragraph">
+<p>Where possible, it is considered highly useful to be able to inject a
+logging interceptor, though with some implementations this may be difficult
+if not impossible. Try to design your target so that this is achievable.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="formatters_and_types"><a class="link" href="#formatters_and_types">2.1.5. Formatters and Types</a></h4>
+<div class="paragraph">
+<p>Targets should—but are not required to—provide a mechanism for handling user-defined
+formats and parsing them to correct types. This is distinct from actually implementing
+those formats however. It should be sufficient to provide as part of the service
+constructors to provide parsing hook functions keyed by the type and format arguments.</p>
+</div>
+<div class="paragraph">
+<p>In Kotlin, the <code>@Format</code> annotation is used for this purpose and provides a hook.
+The <code>Gson</code> library can then be provided type handler implementations in the constructor
+in order to make parsing those formats to the correct data types possible.</p>
+</div>
+<div class="paragraph">
+<p>Consider for example an object of type <code>string</code> with a format <code>uint64</code>. It is reasonable
+for this type to therefore be generated to <code>Long</code> and using the <code>@Format("int64")</code>
+annotation, causing the string to be correctly parsed into the most correct datatype.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="configuration"><a class="link" href="#configuration">2.1.6. Configuration</a></h4>
+<div class="paragraph">
+<p><code>openapi-eller</code> supports the direct manipulation of targets using a provided config file.</p>
+</div>
+<div class="paragraph">
+<p>Some keys are reserved for use by the generator itself (such as <code>fieldRenames</code>) but may
+be extended with custom keys for use by targets and are accessible within the templates
+via the <code>config</code> key. Examples of this in use include the ECMAScript target, where
+different module export styles are used whether or not <code>es6</code> or <code>commonjs</code> is set to true.</p>
+</div>
+<div class="paragraph">
+<p>At this stage, configuration is quite rudimentary. There is no support for disjoint values,
+and no automatically derived variables. This is an area of development going forward, and
+suggestions are highly welcomed.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="dependency_policy"><a class="link" href="#dependency_policy">2.1.7. Dependency policy</a></h4>
+<div class="paragraph">
+<p><strong>Until 1.0.0, this policy does not apply. Experiment at will!</strong></p>
+</div>
+<div class="paragraph">
+<p>All dependencies must be permissively licensed. Once a target is accepted into the tree,
+dependencies may not be changed except for minor version changes, except in cases of major
+bugs. Only in major versions will this requirement be relaxed.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="installation"><a class="link" href="#installation">3. Installation</a></h2>
 <div class="sectionbody">
 
 </div>
 </div>
 <div class="sect1">
-<h2 id="quickstart"><a class="link" href="#quickstart">3. Quickstart</a></h2>
+<h2 id="quickstart"><a class="link" href="#quickstart">4. Quickstart</a></h2>
 <div class="sectionbody">
 
 </div>
 </div>
 <div class="sect1">
-<h2 id="targets"><a class="link" href="#targets">4. Targets</a></h2>
+<h2 id="targets"><a class="link" href="#targets">5. Targets</a></h2>
 <div class="sectionbody">
 
 </div>

@@ -19,6 +19,27 @@ A conforming implementation consists of at the very least:
 * Handles all types supported by OpenAPI v3, and preferrably has a mechanism
   for handling well-known formats, and custom extensions for those formats
 
+==== Documentation
+
+Several targets require some set-up in order to function. Instead of generating
+entire demo projects, only two things are needed for fully supporting a target
+and assisting those people who use them:
+
+* At the beginning for the file, clearly mark it as generated
+* Below that, document any requirements for using dependencies, such as the 
+  version requirements, package managers required, imports to be declared
+  in other configurations, etc. You may make this copy and pastable chunks
+  if you desire to be super-nice.
+* The intro documentation should also include supported configuration elements
+  from the JSON, such as `{ "es6": true }` enabling ES6 modules for ECMAScript,
+  which would otherwise only be discoverable by reading the target source code.
+* Documenting dependencies for specific elements on those elements, such as
+  the requirement for OAuth activities in Android to specify some things in 
+  the XML manifest. This should be as copy-pastable as possible.
+* Generate the relevant documentation fields for all endpoints, models and 
+  fields. This makes the API autocompletable and discoverable in an IDE,
+  or allow documentation to be generated with a relevant generator.
+
 ==== Reserved keywords
 
 Each target must handle reserved keywords in a way that would be considered
@@ -80,9 +101,3 @@ suggestions are highly welcomed.
 All dependencies must be permissively licensed. Once a target is accepted into the tree,
 dependencies may not be changed except for minor version changes, except in cases of major
 bugs. Only in major versions will this requirement be relaxed.
-
-==== Interpretation of `http` authentication type
-
-You may use the `bearerFormat` key as a discriminator blah blah blah TODO
-
-`apiKey` should not be used for bearer tokens.
