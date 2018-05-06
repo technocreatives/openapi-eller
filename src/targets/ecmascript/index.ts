@@ -88,11 +88,15 @@ export default class EcmaScriptTarget extends Target {
   }
 
   pathUrl(name: string): string {
-    return name.replace(/{/g, "${")
+    return name.substring(1).replace(/{/g, "${")
   }
 
   url(thing: string): string {
-    return thing.replace(/{/g, "${")
+    const url = thing.replace(/{/g, "${")
+    if (url.endsWith("/")) {
+      return url
+    }
+    return `${url}/`
   }
   
   // security(items) {
@@ -113,7 +117,7 @@ export default class EcmaScriptTarget extends Target {
         return p.in === "query"
       }).map((p: ParameterObject) => {
         const v = this.variable(p.name)
-        return `if (${v} != null) url.searchParams.set("${p.name}", ${v})`
+        return `if (${v} != null) __url.searchParams.set("${p.name}", ${v})`
       })
     }
 
@@ -121,7 +125,7 @@ export default class EcmaScriptTarget extends Target {
       const requestBody = route.requestBody as RequestBodyObject
       const mainMime = Object.keys(requestBody.content)[0]
 
-      x.push(`reqBody.headers = { "Content-Type": "${mainMime}" }`)
+      x.push(`__reqBody.headers = { "Content-Type": "${mainMime}" }`)
 
       if (mainMime.endsWith("form-data")) {
         const bodyContent = requestBody.content[mainMime]
@@ -136,26 +140,26 @@ export default class EcmaScriptTarget extends Target {
           const v = this.variable(key)
 
           if (schema.required && schema.required.indexOf(key) > -1) {
-            return `formData.append("${key}", body.${v})`
+            return `__formData.append("${key}", body.${v})`
           }
 
           return `if (${v} != null) {
-            formData.append("${key}", body.${v})
+            __formData.append("${key}", body.${v})
           }`
           
         }).join("\n")
 
         x.push(`
-          const formData = new FormData()
+          const __formData = new FormData()
           ${lines}
-          reqBody.body = formData
+          __reqBody.body = __formData
         `)
       } else {
-        x.push("reqBody.body = JSON.stringify(body)")
+        x.push("__reqBody.body = JSON.stringify(body)")
       }
     }
 
-    return x.join("\n        ")
+    return x.join("\n    ")
   }
 
   private isParameterObject(p: ParameterObject | ReferenceObject): p is ParameterObject {
