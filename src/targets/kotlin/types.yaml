@@ -10,8 +10,8 @@ string:
   byte: String
   binary: String
   password: String
-  uri: URI
-  url: URI
+  uri: Url
+  url: Url
 number:
   null: Double
   float: Float
