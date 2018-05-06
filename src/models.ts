@@ -197,9 +197,9 @@ class ModelGenerator {
 
     // TODO: nested objects
     Object.keys(properties)
-      .filter(k => properties[k].type === "object" && properties[k].key == null)
+      .filter(k => properties[k].type === "object" && properties[k].key == null && properties[k].additionalProperties == null)
       .forEach((k) => {
-        console.error(`${schema.key}:${k}: unhandled nested object`)
+        logger.error(`${schema.key}:${k}: unhandled nested object`)
       })
 
     // Strange enum handling that could do with a refactor
@@ -350,8 +350,6 @@ class ModelGenerator {
         const param = defn as ParameterObject
         if (param.schema != null) {
           const schema = param.schema as OpenApiGenSchema
-
-          console.error(schema)
 
           if (schema.key != null) {
             // logger.error(schema.key)
