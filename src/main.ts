@@ -20,7 +20,7 @@ program
     start(target, input, config, program.output, program.debug)
       .then(() => process.exit(0))
       .catch((err: Error) => {
-        console.error(err.stack)
+        console.error(err.message)
         process.exit(1)
       })
   })
