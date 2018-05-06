@@ -1,3 +1,9 @@
+# Documentation
+
+* [Current version](https://technocreatives.github.io/openapi-eller)
+
+## Generating
+
 To generate the documentation, just run:
 
 ```
