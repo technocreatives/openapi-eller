@@ -70,7 +70,7 @@ export default class KotlinTarget extends Target {
         return "ONE"
       }
       
-      return upperSnake("_" + key)
+      return `_${upperSnake(key)}`
     }
 
     return upperSnake(key)
