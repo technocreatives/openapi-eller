@@ -315,14 +315,18 @@ class ModelGenerator {
   }
 
   generate(tree: OpenApiGenTree): { [key: string]: TargetModel } {
-    if (tree.components == null || tree.components.schemas == null) {
-      return {}
+    const models: { [key: string]: TargetModel } = {}
+    const interfaces: { [key: string]: string[] } = {}
+
+    if (tree.components && tree.components.schemas) {
+      const { schemas } = tree.components
+      const results = this.generateModelsFromSchemas(schemas)
+
+      Object.assign(models, results.models)
+      Object.assign(interfaces, results.interfaces)
     }
 
-    const { schemas } = tree.components
-    const { models, interfaces } = this.generateModelsFromSchemas(schemas)
-
-    if (tree.components.parameters != null) {
+    if (tree.components && tree.components.parameters) {
       const { parameters } = tree.components
       const paramSchemas: { [key: string]: OpenApiGenSchema } = {}
 
@@ -358,6 +362,7 @@ class ModelGenerator {
         }
       }
     }
+    
     const opParamResults = this.generateModelsFromSchemas(operationParamSchemas)
     Object.assign(models, opParamResults.models)
     Object.assign(interfaces, opParamResults.interfaces)
