@@ -8,6 +8,7 @@ import {
   SecurityRequirementObject,
   OperationObject,
   ServerObject,
+  PathObject
 } from "openapi3-ts"
 
 export interface OpenApiGenTree extends OpenAPIObject {
@@ -292,3 +293,10 @@ export interface GenerateArguments {
 }
 
 export type TargetFieldMap = { [key: string]: TargetField }
+
+export type EndpointIteration = {
+  routePath: string
+  pathObject: PathObject
+  httpMethod: string
+  operationObject: OperationObject
+}

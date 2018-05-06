@@ -5,12 +5,11 @@ import {
   ConfigObject,
   TargetEndpointsGroup,
   OpenApiGenSchema,
+  EndpointIteration
 } from "types"
 import {
   ResponseObject,
-  ResponsesObject,
-  PathObject,
-  OperationObject
+  ResponsesObject
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
@@ -19,36 +18,28 @@ const VALID_HTTP_METHODS = [
   "get", "put", "post", "delete", "options", "head", "patch", "trace"
 ]
 
-type EndpointIteration = {
-  routePath: string
-  pathObject: PathObject
-  httpMethod: string
-  operationObject: OperationObject
-}
-
 export function endpointIterator(tree: OpenApiGenTree) {
-  return {
-    [Symbol.iterator]: function* () {
-      for (const routePath in tree.paths) {
-        const pathObject = tree.paths[routePath]
+  return function* endpointIterator() {
+    for (const routePath in tree.paths) {
+      const pathObject = tree.paths[routePath]
 
-        for (const httpMethod in pathObject) {
-          const operationObject = pathObject[httpMethod]
+      for (const httpMethod in pathObject) {
+        const operationObject = pathObject[httpMethod]
 
-          if (!VALID_HTTP_METHODS.includes(httpMethod)) {
-            continue
-          }
-
-          const ret: EndpointIteration = {
-            routePath, pathObject, httpMethod, operationObject
-          }
-          
-          yield ret
+        if (!VALID_HTTP_METHODS.includes(httpMethod)) {
+          continue
         }
+
+        const ret: EndpointIteration = {
+          routePath, pathObject, httpMethod, operationObject
+        }
+        
+        yield ret
       }
     }
-  }
+  }()
 }
+
 function findResponseSchema(responses: ResponsesObject) {
   const successResponse: ResponseObject = find(
     responses, 
