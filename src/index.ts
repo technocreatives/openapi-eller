@@ -17,7 +17,6 @@ import {
 import {
   SchemaObject, ParameterObject
 } from "openapi3-ts"
-import logger from "winston"
 
 import { generateModels } from "./models"
 import { generateEndpoints, endpointIterator } from "./endpoints"
