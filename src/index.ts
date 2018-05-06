@@ -5,7 +5,8 @@ import _ from "lodash"
 import { sync as mkdirpSync } from "mkdirp"
 import path from "path"
 import { 
-  OpenApiGenObject, 
+  OpenApiGenTree, 
+  OpenApiGenSchema,
   SecuritySchemeType, 
   Target, 
   ParameterLocation, 
@@ -13,51 +14,87 @@ import {
   TargetSecuritySchemes,
   ConfigObject
 } from "types"
-import { 
-  PathItemObject, 
-  OperationObject, 
-  SchemaObject
+import {
+  SchemaObject, ParameterObject
 } from "openapi3-ts"
+import logger from "winston"
 
 import { generateModels } from "./models"
-import { generateEndpoints } from "./endpoints"
+import { generateEndpoints, endpointIterator } from "./endpoints"
 
 function loadYamlFile(yamlFilePath: string) {
   if (!fs.statSync(yamlFilePath)) {
     throw new Error("YAML file does not exist")
   }
 
-  let tree = yaml.safeLoad(fs.readFileSync(yamlFilePath, "utf8")) as OpenApiGenObject
+  let tree = yaml.safeLoad(fs.readFileSync(yamlFilePath, "utf8")) as OpenApiGenTree
+
+  if (!tree.servers) {
+    throw new Error(`Unexpected structure: Servers missing`)
+  }
 
   // Add keys to schemas
-  if (tree && tree.components && tree.components.schemas) {
-    const schemas = tree.components.schemas
+  if (tree && tree.components) {
+    const { schemas, parameters } = tree.components
 
-    Object.keys(schemas).forEach((k) => {
-      schemas[k].key = k
+    if (schemas != null) {
+      for (const k in schemas) {
+        const schema = schemas[k]
 
-      // Ensure titles have known origins
-      if (schemas[k].title) {
-        schemas[k].hasModelTitle = true
+        if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
+          continue
+        }
+
+        schemas[k].key = k
+
+        // Ensure titles have known origins
+        if (schemas[k].title) {
+          schemas[k].hasModelTitle = true
+        }
       }
-    })
+    }
+
+    if (parameters != null) {
+      for (const k in parameters) {
+        const schema = parameters[k].schema as OpenApiGenSchema | undefined
+
+        if (schema != null) {
+          if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
+            continue
+          }
+
+          (schema as OpenApiGenSchema).key = k
+          // logger.warn(`parameter keyed: ${k}`)
+        }
+      }
+    }
   }
 
   // Add parameters to methods
-  _.forEach(tree.paths, (pathItemObject: PathItemObject, routePath: string) => {
-    const params = pathItemObject.parameters || []
+  for (const { operationObject, pathObject } of endpointIterator(tree)) {
+    const params = pathObject.parameters || []
+    operationObject.parameters = params.concat(operationObject.parameters || [])
     
-    _.forEach(pathItemObject, (defn: OperationObject, httpMethod: string) => {
-      if (httpMethod === "parameters") {
-        return
-      }
+    for (const defn of operationObject.parameters as ParameterObject[]) {
+      const param = defn as ParameterObject
 
-      defn.parameters = params.concat(defn.parameters || [])
-    })
-  })
+      if (param.schema != null) {
+        const schema = param.schema as OpenApiGenSchema
+
+        if (schema.type === "object" || schema.type === "array" || schema.enum != null) {
+          if (operationObject.operationId == null) {
+            throw new Error("No operationId found for " + JSON.stringify(operationObject))
+          }
+          
+          schema.key = `${operationObject.operationId}_${param.name}`
+          // logger.warn(`parameter keyed: ${operationObject.key}`)
+        }
+      }
+    }
+  }
 
   // Resolve $refs
-  tree = jref.resolve(tree) as OpenApiGenObject
+  tree = jref.resolve(tree) as OpenApiGenTree
 
   // Merge all "allOf"
   if (tree.components && tree.components.schemas) {
@@ -85,7 +122,7 @@ function loadYamlFile(yamlFilePath: string) {
 }
 
 function generateSecuritySchemes(
-  tree: OpenApiGenObject, 
+  tree: OpenApiGenTree, 
   target: Target
 ): {}[] {
   const security: TargetSecuritySchemes[] = []
@@ -147,7 +184,7 @@ function generateSecuritySchemes(
   return security
 }
 // function generateAnonymousModels(
-//   tree: OpenApiGenObject, 
+//   tree: OpenApiGenTree, 
 //   target: Target,
 //   models: { [key: string]: TargetModel }
 // ): { [key: string]: TargetModel } {
@@ -173,7 +210,7 @@ async function start(
   if (configPath != null) {
     config = JSON.parse(fs.readFileSync(configPath, "utf8"))
   }
-  // TODO: can throw, need to handle
+  
   const tree = loadYamlFile(yamlPath)
 
   if (tree.openapi == null || !tree.openapi.startsWith("3.")) {
@@ -186,10 +223,6 @@ async function start(
   const models = generateModels(tree, targetObj)
   // const extraModels = generateAnonymousModels(tree, targetObj, models)
   const groups = generateEndpoints(tree, targetObj, config)
-
-  if (!tree.servers) {
-    throw new Error(`Unexepcted structure: Servers missing`)
-  }
 
   const data = {
     config,

@@ -10,8 +10,9 @@ import {
   ServerObject,
 } from "openapi3-ts"
 
-export interface OpenApiGenObject extends OpenAPIObject {
+export interface OpenApiGenTree extends OpenAPIObject {
   components?: OpenApiGenComponents
+  servers: ServerObject[]
 }
 
 export interface OpenApiGenComponents extends ComponentsObject {

@@ -1,6 +1,6 @@
 import { find, values } from "lodash"
 import { 
-  OpenApiGenObject,
+  OpenApiGenTree,
   Target,
   ConfigObject,
   TargetEndpointsGroup,
@@ -8,7 +8,9 @@ import {
 } from "types"
 import {
   ResponseObject,
-  ResponsesObject
+  ResponsesObject,
+  PathObject,
+  OperationObject
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
@@ -17,7 +19,14 @@ const VALID_HTTP_METHODS = [
   "get", "put", "post", "delete", "options", "head", "patch", "trace"
 ]
 
-export function endpointIterator(tree: OpenApiGenObject) {
+type EndpointIteration = {
+  routePath: string
+  pathObject: PathObject
+  httpMethod: string
+  operationObject: OperationObject
+}
+
+export function endpointIterator(tree: OpenApiGenTree) {
   return {
     [Symbol.iterator]: function* () {
       for (const routePath in tree.paths) {
@@ -30,9 +39,11 @@ export function endpointIterator(tree: OpenApiGenObject) {
             continue
           }
 
-          yield {
+          const ret: EndpointIteration = {
             routePath, pathObject, httpMethod, operationObject
           }
+          
+          yield ret
         }
       }
     }
@@ -63,7 +74,7 @@ function findResponseSchema(responses: ResponsesObject) {
 }
 
 export function generateEndpoints(
-  tree: OpenApiGenObject, 
+  tree: OpenApiGenTree, 
   target: Target, 
   config: ConfigObject
 ): TargetEndpointsGroup[] | null {

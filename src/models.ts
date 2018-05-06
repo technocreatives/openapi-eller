@@ -1,6 +1,6 @@
 import jref from "json-ref-lite"
 import { 
-  OpenApiGenObject,
+  OpenApiGenTree,
   Target,
   TargetModel,
   OpenApiGenSchema,
@@ -12,6 +12,8 @@ import {
 import { resolveType } from "./targets"
 import _ from "lodash"
 import logger from "winston"
+import { endpointIterator } from "./endpoints"
+import { ParameterObject } from "openapi3-ts";
 
 class ModelGenerator {
   private target: Target
@@ -271,19 +273,19 @@ class ModelGenerator {
     }
   }
 
-  generate(tree: OpenApiGenObject): { [key: string]: TargetModel } {
-    if (tree.components == null || tree.components.schemas == null) {
-      return {}
-    }
-
-    const { schemas } = tree.components
+  private generateModelsFromSchemas(schemas: { [key: string]: OpenApiGenSchema }): {
+    models: { [key: string]: TargetModel },
+    interfaces: { [key: string]: string[] }
+  } {
     const models: { [key: string]: TargetModel } = {}
     const modelInterfaces: { [key: string]: string[] } = {}
 
-    _.forEach(schemas, (schema: OpenApiGenSchema, schemaKey: string) => {
+    for (const schemaKey in schemas) {
+      const schema = schemas[schemaKey]
+
       if (schema.enum) {
         models[schema.key] = this.processEnum(schema)
-        return
+        continue
       }
 
       if (schema.type === "array") {
@@ -291,7 +293,7 @@ class ModelGenerator {
         const msg = schema.key + ": Array models cannot be represented in most programming languages. " +
           "Prefer an object and use the `items` property to generate a representable version of this model."
         logger.warn(msg)
-        return
+        continue
       }
 
       if (schema.type === "object") {
@@ -300,15 +302,71 @@ class ModelGenerator {
           models[schema.key] = model
           Object.assign(modelInterfaces, interfaces)
         }
-        return
+        continue
       }
 
       logger.warn(`Found unhandleable entity '${schemaKey}': ${JSON.stringify(schema)}`)
-    })
+    }
+
+    return {
+      models,
+      interfaces: modelInterfaces
+    }
+  }
+
+  generate(tree: OpenApiGenTree): { [key: string]: TargetModel } {
+    if (tree.components == null || tree.components.schemas == null) {
+      return {}
+    }
+
+    const { schemas } = tree.components
+    const { models, interfaces } = this.generateModelsFromSchemas(schemas)
+
+    if (tree.components.parameters != null) {
+      const { parameters } = tree.components
+      const paramSchemas: { [key: string]: OpenApiGenSchema } = {}
+
+      for (const paramKey in parameters) {
+        const param = parameters[paramKey] as ParameterObject
+        const schema = param.schema as OpenApiGenSchema | undefined
+        if (schema != null && schema.key != null) {
+          paramSchemas[schema.key] = schema
+        }
+      }
+      const results = this.generateModelsFromSchemas(paramSchemas)
+
+      Object.assign(models, results.models)
+      Object.assign(interfaces, results.interfaces)
+    }
+    
+    const operationParamSchemas: { [key: string]: OpenApiGenSchema } = {}
+
+    for (const { operationObject } of endpointIterator(tree)) {
+      if (operationObject.parameters == null || operationObject.parameters.length === 0) {
+        continue
+      }
+      
+      for (const defn of operationObject.parameters) {
+        const param = defn as ParameterObject
+        if (param.schema != null) {
+          const schema = param.schema as OpenApiGenSchema
+
+          console.error(schema)
+
+          if (schema.key != null) {
+            // logger.error(schema.key)
+            operationParamSchemas[schema.key] = schema
+          }
+        }
+      }
+    }
+    const opParamResults = this.generateModelsFromSchemas(operationParamSchemas)
+    Object.assign(models, opParamResults.models)
+    Object.assign(interfaces, opParamResults.interfaces)
 
     // Assign all interfaces to the relevant models
-    _.forEach(modelInterfaces, (interfaces, k) => {
-      models[k].interfaces = interfaces
+    _.forEach(interfaces, (nestedInterfaces, k) => {
+      models[k].interfaces = nestedInterfaces
     })
 
     return jref.resolve(models) as { [key: string]: TargetModel }
@@ -316,7 +374,7 @@ class ModelGenerator {
 }
 
 export function generateModels(
-  tree: OpenApiGenObject, 
+  tree: OpenApiGenTree, 
   target: Target
 ): { [key: string]: TargetModel } {
   return new ModelGenerator(target).generate(tree)
