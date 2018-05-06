@@ -48,8 +48,8 @@ There are other targets in the tree, though they are a work-in-progress.
 ## Roadmap
 
 - [x] Abstract class for handling targets
-- [ ] Modularise and clean up the messy generator code
-- [ ] Support for nested anonymous objects (there's already partial support but it's patchy)
+- [x] Modularise and clean up the messy generator code
+- [x] Support for nested anonymous objects (there's already partial support but it's patchy)
 - [ ] A template generator for building new targets with ease
 - [ ] A template checklist for generator compliance
 - [ ] Documentation for the internal representation of the schemas to ease development
