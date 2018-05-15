@@ -118,7 +118,7 @@ function resolveTypeImpl(
       "{value}", 
       resolveTypeImpl(target, schema, name, items, false, false)
     )
-  } else if (name !== null && (type === "object" || type == null)) {
+  } else if (name !== null && ((type === "object" && format == null) || type == null)) {
     candidate = target.cls(name)
   } else if (type == null) {
     return types["null"]
