@@ -15,19 +15,15 @@ import {
   ConfigObject
 } from "types"
 import {
-  SchemaObject, ParameterObject
+  SchemaObject,
+  ParameterObject
 } from "openapi3-ts"
 
 import { generateModels } from "./models"
 import { generateEndpoints, endpointIterator } from "./endpoints"
+import { resolveTarget } from "./targets"
 
-function loadYamlFile(yamlFilePath: string) {
-  if (!fs.statSync(yamlFilePath)) {
-    throw new Error("YAML file does not exist")
-  }
-
-  let tree = yaml.safeLoad(fs.readFileSync(yamlFilePath, "utf8")) as OpenApiGenTree
-
+function parseOpenApiGenTree(tree: OpenApiGenTree) {
   if (!tree.servers) {
     throw new Error(`Unexpected structure: Servers missing`)
   }
@@ -182,61 +178,70 @@ function generateSecuritySchemes(
 
   return security
 }
-// function generateAnonymousModels(
-//   tree: OpenApiGenTree, 
-//   target: Target,
-//   models: { [key: string]: TargetModel }
-// ): { [key: string]: TargetModel } {
-//   // Search through parameters first
 
-//   const candidateMap = {}
-
-//   _.forEach(tree.paths, (pathObject: PathItemObject, routePath) => {
-//     _.forEach(pathObject, (operationObject: OperationObject, httpMethod) => {
-//       // if (operationObject.parameters
-//     })
-//   })
-// }
-
-async function start(
-  target: string, 
-  yamlPath: string, 
-  configPath: string,
-  targetDir = process.cwd(),
-  isDebug = false
+export async function generateTemplateData(
+  target: Target,
+  tree: OpenApiGenTree,
+  config: any
 ) {
-  let config = {}
-  if (configPath != null) {
-    config = JSON.parse(fs.readFileSync(configPath, "utf8"))
-  }
-  
-  const tree = loadYamlFile(yamlPath)
-
   if (tree.openapi == null || !tree.openapi.startsWith("3.")) {
     throw new Error("Did not find supported version or `openapi` field.")
   }
 
-  const targetClass = require(`${__dirname}/targets/${target}`).default as
-    new (config: ConfigObject) => Target
-  const targetObj = new targetClass(config)
-  const models = generateModels(tree, targetObj)
-  // const extraModels = generateAnonymousModels(tree, targetObj, models)
-  const groups = generateEndpoints(tree, targetObj, config)
+  const models = generateModels(tree, target)
+  const groups = generateEndpoints(tree, target, config)
 
   const data = {
     config,
     groups,
     models,
-    security: generateSecuritySchemes(tree, targetObj),
-    servers: targetObj.servers(tree.servers),
-    name: targetObj.cls(tree.info.title)
+    security: generateSecuritySchemes(tree, target),
+    servers: target.servers(tree.servers),
+    name: target.cls(tree.info.title)
   }
+
+  return data
+}
+
+// export async function generateFromInput(
+//   target: Target,
+//   tree: OpenApiGenTree,
+//   config: any 
+// ) {
+
+// }
+
+export async function generateFromPath(
+  targetName: string, 
+  yamlPath: string, 
+  configPath: string,
+  targetDir = process.cwd(),
+  isDebug = false
+) {
+  if (!fs.statSync(yamlPath)) {
+    throw new Error("YAML file does not exist")
+  }
+
+  const yamlData = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8")) as OpenApiGenTree
+  const tree = parseOpenApiGenTree(yamlData)
+
+  let config = {}
+  if (configPath != null) {
+    config = JSON.parse(fs.readFileSync(configPath, "utf8"))
+  }
+
+  const targetClass = resolveTarget(targetName) as (new (config: ConfigObject) => Target) | null
+  if (targetClass == null) {
+    throw new Error(`No target found for name: ${targetName}`)
+  }
+  const target = new targetClass(config)
+  const data = await generateTemplateData(target, tree, config)
 
   if (isDebug) {
     fs.writeFileSync("debug.json", JSON.stringify(data, null, 2), "utf8")
   }
   
-  const files = targetObj.generate(data)
+  const files = target.generate(data)
 
   for (const fn in files) {
     const nfn = path.join(targetDir, fn)
@@ -244,5 +249,3 @@ async function start(
     fs.writeFileSync(nfn, files[fn], "utf8")
   }
 }
-
-module.exports = start

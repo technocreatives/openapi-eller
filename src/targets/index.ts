@@ -7,7 +7,43 @@ import {
   OpenApiGenSchema
 } from "types"
 
-function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
+import EcmaScriptTarget from "./ecmascript"
+import AspNetTarget from "./csharp-aspnet"
+import SwiftTarget from "./swift"
+import RustTarget from "./rust"
+import KotlinTarget from "./kotlin"
+
+// Re-export the targets
+export {
+  KotlinTarget,
+  SwiftTarget,
+  AspNetTarget,
+  RustTarget,
+  EcmaScriptTarget
+}
+
+export function resolveTarget(targetName: string): typeof Target | null {
+  switch (targetName.toLowerCase()) {
+    case "kotlin":
+      return KotlinTarget
+    case "swift":
+      return SwiftTarget
+    case "rust":
+      return RustTarget
+    case "aspnet":
+    case "csharp-aspnet":
+      return AspNetTarget
+    case "ecmascript":
+    case "javascript":
+    case "js":
+    case "es":
+      return EcmaScriptTarget
+    default:
+      return null
+  }
+}
+
+export function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
   const targetTypeMapFilePath = fs.readFileSync(`${__dirname}/${target}/types.yaml`, "utf8")
   const types = yaml.safeLoad(targetTypeMapFilePath) as TargetTypeMap
   
@@ -27,7 +63,7 @@ function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): Tar
   return types
 }
 
-function resolveSchemaType(target: Target, schema: OpenApiGenSchema | null, name: string) {
+export function resolveSchemaType(target: Target, schema: OpenApiGenSchema | null, name: string) {
   if (schema == null) {
     return resolveTypeImpl(target, null, null, null, false, false)
   }
@@ -35,7 +71,7 @@ function resolveSchemaType(target: Target, schema: OpenApiGenSchema | null, name
   return resolveTypeImpl(target, schema, name, schema, false, false)
 }
 
-function resolveType(
+export function resolveType(
   target: Target, 
   schema: OpenApiGenSchema, 
   name: string, 
@@ -157,10 +193,4 @@ function resolveTypeImpl(
   }
 
   return candidate
-}
-
-export {
-  resolveSchemaType,
-  resolveType,
-  typeResolvers,
 }

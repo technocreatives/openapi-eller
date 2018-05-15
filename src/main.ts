@@ -3,7 +3,7 @@
 import fs from "fs"
 import program from "commander"
 
-const start = require("./index")
+const { generateFromPath } = require("./index")
 const targets = fs.readdirSync(`${__dirname}/targets`)
     .filter(x => x.indexOf(".") === -1)
     .join(", ")
@@ -17,7 +17,7 @@ program
   .option("-o, --output [directory]", "The directory to output to")
   .option("-d, --debug", "Enable debug.json output")
   .action((target, input, config) => {
-    start(target, input, config, program.output, program.debug)
+    generateFromPath(target, input, config, program.output, program.debug)
       .then(() => process.exit(0))
       .catch((err: Error) => {
         console.error(program.debug ? err.stack : err.message)
