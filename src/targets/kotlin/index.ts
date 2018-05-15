@@ -1,8 +1,7 @@
 import fs from "fs"
 import _ from "lodash"
-import hbs from "handlebars"
 
-import { typeResolvers, resolveSchemaType } from "targets"
+import { typeResolvers, resolveSchemaType, handlebarsInstance } from "targets"
 import {
   Target,
   OpenApiGenSchema,
@@ -18,8 +17,7 @@ import {
   RequestBodyObject
 } from "openapi3-ts"
 
-const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
-
+const apiTmpl = handlebarsInstance(`${__dirname}/api.hbs`, `${__dirname}/partials`)
 const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
 
 const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/

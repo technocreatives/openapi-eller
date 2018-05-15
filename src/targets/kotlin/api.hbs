@@ -21,6 +21,7 @@ import com.google.gson.stream.JsonWriter
 import io.reactivex.Completable
 import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposables
 import io.reactivex.subjects.PublishSubject
 import net.openid.appauth.*
 import okhttp3.*
@@ -87,37 +88,7 @@ class {{{../name}}}{{{name}}}Interceptor(private val token: String): Interceptor
 }
 {{/if}}
 {{#if isOAuth2}}
-/**
- * Paste the following line into your AndroidManifest.xml to enable the callback activity.
- *
-    <activity
-        android:name="{{{@root.config.package}}}.{{{name}}}OAuthActivity">
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW"/>
-            <category android:name="android.intent.category.DEFAULT"/>
-            <category android:name="android.intent.category.BROWSABLE"/>
-            <data android:scheme="https"
-                android:host="[your callback host]"
-                android:path="[your callback path]"/>
-        </intent-filter>
-        <intent-filter>
-            <action android:name="android.intent.action.VIEW"/>
-            <category android:name="android.intent.category.DEFAULT"/>
-            <category android:name="android.intent.category.BROWSABLE"/>
-            <data android:scheme="[your custom scheme, eg com.example.oauth]"/>
-        </intent-filter>
-    </activity>
- */
-class {{{name}}}OAuthActivity : Activity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val response = AuthorizationResponse.fromIntent(intent)
-        val exception = AuthorizationException.fromIntent(intent)
-        {{{name}}}OAuth.subject.onNext(response to exception)
-        finish()
-    }
-}
+{{> oauth-activity }}
 
 class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
     companion object {
@@ -133,76 +104,105 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
         override fun toString() = value
     }
 
+{{#if isOpenIdConnect}}
+    val openIdConnectUrl = Uri.parse("{{{openIdConnectUrl}}}")!!
+
+    private val config = Single.create<AuthorizationServiceConfiguration> { emitter ->
+        AuthorizationServiceConfiguration.fetchFromUrl(openIdConnectUrl, { config, ex ->
+            if (ex != null) {
+                emitter.onError(ex)
+            } else if (config != null) {
+                emitter.onSuccess(config)
+            } else {
+                emitter.onError(RuntimeException("Config and exception were both null"))
+            }
+        })
+        
+        Disposables.empty()
+    }
+{{else}}
     val authorizeUri = Uri.parse("{{{authorizationUrl}}}")!!
     val accessTokenUri = Uri.parse("{{{tokenUrl}}}")!!
 {{#if refreshUrl}}
     val refreshUri = Uri.parse("{{{refreshUrl}}}")!!
 {{/if}}
 
-    private val config = AuthorizationServiceConfiguration(authorizeUri, accessTokenUri)
+    private val config = Single.just(AuthorizationServiceConfiguration(authorizeUri, accessTokenUri))
+{{/if}}
     private val authActivityClass get() = {{{name}}}OAuthActivity::class.java
 
-    fun authorize(activity: Activity, scopes: List<Scope>? = null): Single<AuthState> {
+    fun authorize(activity: Activity, scopes: List<Scope>? = null, prompt: String? = "consent"): Single<AuthState> {
         val service = AuthorizationService(activity)
+        
+        return config.flatMap { config -> 
+            val observer = subject
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(AndroidSchedulers.mainThread())
+                    .take(1)
+                    .map { AuthState(it.first, it.second) }
+                    .singleOrError()
+                    .doFinally { service.dispose() }
 
-        val observer = subject
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(AndroidSchedulers.mainThread())
-                .take(1)
-                .singleOrError()
-                .map {
-                    AuthState(it.first, it.second)
-                }
-                .doFinally { service.dispose() }
+            val req = AuthorizationRequest.Builder(config,
+                    clientId,
+                    ResponseTypeValues.CODE,
+                    redirectUri)
+    {{#if isAuthorizationCode}}
+                    .setCodeVerifier(null)
+    {{/if}}
+                    .setScopes(scopes?.map { it.toString() })
+                    .setPrompt(prompt)
+                    .build()
 
-        val req = AuthorizationRequest.Builder(config,
-                clientId,
-                ResponseTypeValues.CODE,
-                redirectUri)
-                .setScopes(scopes?.map { it.toString() })
-                .build()
+            val pendingIntent = PendingIntent.getActivity(
+                    activity, 0, Intent(activity, authActivityClass), 0)
 
-        val pendingIntent = PendingIntent.getActivity(
-                activity, 0, Intent(activity, authActivityClass), 0)
+            service.performAuthorizationRequest(req, pendingIntent)
 
-        service.performAuthorizationRequest(req, pendingIntent)
-
-        return observer
+            observer
+        }
     }
 
+{{#if isAuthorizationCode}}
     // This function should only be used during testing to ensure the security of the clientSecret.
     fun accessToken(activity: Activity, authState: AuthState, clientSecret: String): Single<AuthState> {
         val code = authState.lastAuthorizationResponse?.authorizationCode ?:
             return Single.error(Exception("No authorization response in auth state"))
         
         val service = AuthorizationService(activity)
-        val config = AuthorizationServiceConfiguration(authorizeUri, accessTokenUri)
+        return config.flatMap { config ->
+            val tokenReq = TokenRequest.Builder(config, clientId)
+                    .setAuthorizationCode(code)
+                    .setRedirectUri(redirectUri)
+                    .build()
 
-        val tokenReq = TokenRequest.Builder(config, clientId)
-                .setAuthorizationCode(code)
-                .setRedirectUri(redirectUri)
-                .build()
-
-        return Single.create<AuthState> { emitter ->
-            service.performTokenRequest(tokenReq, ClientSecretPost(clientSecret), { res, ex ->
-                authState.update(res, ex)
-                emitter.onSuccess(authState)
-            })
-        }.doFinally { service.dispose() }
+            Single.create<AuthState> { emitter ->
+                service.performTokenRequest(tokenReq, ClientSecretPost(clientSecret), { res, ex ->
+                    authState.update(res, ex)
+                    emitter.onSuccess(authState)
+                })
+            }.doFinally { service.dispose() }
+        }
     }
+{{/if}}
 
     private inner class OAuthInterceptor(
             private val context: Context,
             private val authState: AuthState
     ): Interceptor {
-        private fun refreshTokens(): Pair<String?, String?> {
-            return Single.create<Pair<String?, String?>> { emitter ->
+        private fun refreshTokens(): String {
+            val token = authState.accessToken
+            if (!authState.needsTokenRefresh && token != null) {
+                return token
+            }
+
+            return Single.create<String> { emitter ->
                 val service = AuthorizationService(context)
 
                 authState.performActionWithFreshTokens(service, { accessToken, idToken, ex ->
                     when {
                         ex != null -> emitter.onError(ex)
-                        accessToken != null -> emitter.onSuccess(accessToken to idToken)
+                        accessToken != null -> emitter.onSuccess(accessToken)
                         else -> emitter.onError(Exception("accessToken is null"))
                     }
 
@@ -212,7 +212,7 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
         }
 
         override fun intercept(chain: Interceptor.Chain): Response {
-            val (accessToken, idToken) = refreshTokens()
+            val accessToken = refreshTokens()
 
             val req = chain.request().newBuilder()
                     .addHeader("Authorization", "Bearer $accessToken")

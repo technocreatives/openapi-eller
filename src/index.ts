@@ -130,28 +130,41 @@ function generateSecuritySchemes(
     if (!tree || !tree.components || !tree.components.securitySchemes) {
       return
     }
+    
     const securitySchemeObject = tree.components.securitySchemes[k]
+    const { type } = securitySchemeObject
 
-    if (securitySchemeObject.type === SecuritySchemeType.OAuth2
-      && securitySchemeObject.flows) {
+    if (type === SecuritySchemeType.OAuth2 || type === SecuritySchemeType.OpenIdConnect) {
+      if (securitySchemeObject.flows == null) {
+        throw new Error("Flows can not be null with oauth2 security scheme")
+      }
+
+      const isOpenIdConnect = type === SecuritySchemeType.OpenIdConnect
 
       Object.keys(securitySchemeObject.flows).forEach((fk) => {
         if (!securitySchemeObject.flows) {
           return
         }
-        const o = Object.assign({}, securitySchemeObject.flows[fk], {
+
+        const o: TargetSecuritySchemes = Object.assign({}, securitySchemeObject.flows[fk], {
           name: target.cls(`${k}_${fk}`),
           isOAuth2: true,
+          isOpenIdConnect,
           isAuthorizationCode: fk === "authorizationCode",
+          isImplicit: fk === "implicit",
           scopes: _.map(securitySchemeObject.flows[fk].scopes, (v, k) => ({
             name: target.enumKey(k),
             value: k
           }))
         })
 
+        if (isOpenIdConnect) {
+          o.openIdConnectUrl = securitySchemeObject.openIdConnectUrl
+        }
+
         security.push(o)
       })
-    } else if (securitySchemeObject.type === SecuritySchemeType.ApiKey) {
+    } else if (type === SecuritySchemeType.ApiKey) {
       security.push({
         name: target.cls(k),
         key: securitySchemeObject.name,
@@ -159,7 +172,7 @@ function generateSecuritySchemes(
         inHeader: securitySchemeObject.in === ParameterLocation.Header,
         inQuery: securitySchemeObject.in === ParameterLocation.Query
       })
-    } else if (securitySchemeObject.type === SecuritySchemeType.HTTP) {
+    } else if (type === SecuritySchemeType.HTTP) {
       security.push({
         name: target.cls(k),
         isHttp: true,

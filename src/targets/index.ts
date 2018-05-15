@@ -6,6 +6,8 @@ import {
   TargetFormatMap,
   OpenApiGenSchema
 } from "types"
+import hbs, { TemplateDelegate } from "handlebars"
+import path from "path"
 
 import EcmaScriptTarget from "./ecmascript"
 import AspNetTarget from "./csharp-aspnet"
@@ -41,6 +43,20 @@ export function resolveTarget(targetName: string): typeof Target | null {
     default:
       return null
   }
+}
+
+export function handlebarsInstance(tmplPath: string, partialsDir: string): TemplateDelegate {
+  const instance = hbs.create()
+  for (const partialFilename of fs.readdirSync(partialsDir)) {
+    if (!partialFilename.endsWith(".hbs")) {
+      continue
+    }
+
+    const partialBody = fs.readFileSync(path.join(partialsDir, partialFilename), "utf8")
+    instance.registerPartial(partialFilename.split(".").slice(0, -1).join("."), instance.compile(partialBody))
+  }
+  
+  return instance.compile(fs.readFileSync(tmplPath, "utf8"))
 }
 
 export function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {

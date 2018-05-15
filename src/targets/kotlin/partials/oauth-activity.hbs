@@ -1,0 +1,33 @@
+/**
+ * Paste the following lines into your AndroidManifest.xml to enable the callback activity.
+ * If the RedirectUriReceiverActivity is already defined, just paste the intent filters inside it.
+ *
+    <activity
+        android:name="net.openid.appauth.RedirectUriReceiverActivity"
+        android:screenOrientation="portrait"
+        tools:node="replace">
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https" android:host="[your callback host]" android:path="[your callback path]"/>
+        </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.DEFAULT"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="[your custom scheme, eg com.example.oauth]"/>
+        </intent-filter>
+    </activity>
+    <activity android:name="{{{@root.config.package}}}.{{{name}}}OAuthActivity" />
+ */
+class {{{name}}}OAuthActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val response = AuthorizationResponse.fromIntent(intent)
+        val exception = AuthorizationException.fromIntent(intent)
+        {{{name}}}OAuth.subject.onNext(response to exception)
+        finish()
+    }
+}
