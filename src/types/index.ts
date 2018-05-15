@@ -182,7 +182,9 @@ export interface TargetServer {
 
 export interface TargetSecuritySchemes {
   name: string
-  isOauth2?: boolean
+  isOAuth2?: boolean
+  isOpenIdConnect?: boolean
+  openIdConnectUrl?: string
   isAuthorizationCode?: boolean
   scopes?: {
     name: string;
