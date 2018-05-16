@@ -12,7 +12,7 @@ import {
   TargetSecuritySchemes,
   ConfigObject,
   GenerateArguments
-} from "types"
+} from "./types"
 import {
   SchemaObject,
   ParameterObject
