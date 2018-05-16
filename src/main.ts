@@ -8,8 +8,6 @@ import { sync as mkdirpSync } from "mkdirp"
 import { loadConfig, loadTarget, generateArgumentsFromPath } from "./index"
 import { knownTargets } from "./targets"
 
-// declare function mkdirpSync(s: string): any
-
 async function generateFromPath(
   targetName: string,
   yamlPath: string,
@@ -24,7 +22,8 @@ async function generateFromPath(
   const args = await generateArgumentsFromPath(target, yamlPath, config)
 
   if (isDebug) {
-    fs.writeFileSync(path.join(absOutputPath, "debug.json"), JSON.stringify(args, null, 2), "utf8")
+    fs.writeFileSync(path.join(absOutputPath, "debug.json"),
+      JSON.stringify(args, null, 2), "utf8")
   }
 
   const files = target.generate(args)
@@ -40,7 +39,8 @@ program
   .name("openapi-eller")
   .version("0.1.0")
   // tslint:disable-next-line:max-line-length
-  .description(`Generate API clients and servers for OpenAPI v3 specifications.\n\n  Available targets: ${knownTargets.join(", ")}`)
+  .description(`Generate API clients and servers for OpenAPI v3 specifications.\n\n` +
+               `  Available targets: ${knownTargets.join(", ")}`)
   .arguments("<target> <input> [config]")
   .option("-o, --output [directory]", "The directory to output to")
   .option("-d, --debug", "Enable debug.json output")
