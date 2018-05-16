@@ -197,7 +197,9 @@ class ModelGenerator {
 
     // TODO: nested objects
     Object.keys(properties)
-      .filter(k => properties[k].type === "object" && properties[k].key == null && properties[k].additionalProperties == null)
+      .filter(k => properties[k].type === "object" && 
+          properties[k].key == null &&
+          properties[k].additionalProperties == null)
       .forEach((k) => {
         logger.error(`${schema.key}:${k}: unhandled nested object`)
       })
