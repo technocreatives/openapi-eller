@@ -24,6 +24,10 @@ export {
   EcmaScriptTarget
 }
 
+export const knownTargets = [
+  "csharp-aspnet", "ecmascript", "kotlin", "rust", "swift"
+]
+
 export function resolveTarget(targetName: string): typeof Target | null {
   switch (targetName.toLowerCase()) {
     case "kotlin":

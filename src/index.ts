@@ -2,8 +2,6 @@ import jref from "json-ref-lite"
 import yaml from "js-yaml"
 import fs from "fs"
 import _ from "lodash"
-import { sync as mkdirpSync } from "mkdirp"
-import path from "path"
 import { 
   OpenApiGenTree, 
   OpenApiGenSchema,
@@ -12,7 +10,8 @@ import {
   ParameterLocation, 
   SecuritySchemeObjectScheme,
   TargetSecuritySchemes,
-  ConfigObject
+  ConfigObject,
+  GenerateArguments
 } from "types"
 import {
   SchemaObject,
@@ -192,11 +191,11 @@ function generateSecuritySchemes(
   return security
 }
 
-export async function generateTemplateData(
+async function generateTemplateData(
   target: Target,
   tree: OpenApiGenTree,
   config: any
-) {
+): Promise<GenerateArguments> {
   if (tree.openapi == null || !tree.openapi.startsWith("3.")) {
     throw new Error("Did not find supported version or `openapi` field.")
   }
@@ -216,49 +215,46 @@ export async function generateTemplateData(
   return data
 }
 
-// export async function generateFromInput(
-//   target: Target,
-//   tree: OpenApiGenTree,
-//   config: any 
-// ) {
+export async function generateArgumentsFromTree(
+  target: Target,
+  unparsedTree: OpenApiGenTree,
+  config: any 
+): Promise<GenerateArguments> {
+  const tree = parseOpenApiGenTree(unparsedTree)
+  return generateTemplateData(target, tree, config)
+}
 
-// }
-
-export async function generateFromPath(
-  targetName: string, 
-  yamlPath: string, 
-  configPath: string,
-  targetDir = process.cwd(),
-  isDebug = false
-) {
-  if (!fs.statSync(yamlPath)) {
-    throw new Error("YAML file does not exist")
-  }
-
-  const yamlData = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8")) as OpenApiGenTree
-  const tree = parseOpenApiGenTree(yamlData)
-
+export function loadConfig(configPath: string | undefined): ConfigObject {
   let config = {}
   if (configPath != null) {
+    if (!fs.statSync(configPath)) {
+      throw new Error("Config file does not exist")
+    }
     config = JSON.parse(fs.readFileSync(configPath, "utf8"))
   }
+  return config
+}
 
+export function loadTarget(targetName: string, config: ConfigObject): Target {
   const targetClass = resolveTarget(targetName) as (new (config: ConfigObject) => Target) | null
   if (targetClass == null) {
     throw new Error(`No target found for name: ${targetName}`)
   }
-  const target = new targetClass(config)
-  const data = await generateTemplateData(target, tree, config)
+  return new targetClass(config)
+}
 
-  if (isDebug) {
-    fs.writeFileSync("debug.json", JSON.stringify(data, null, 2), "utf8")
+export async function generateArgumentsFromPath(
+  target: Target,
+  yamlPath: string, 
+  config: any
+): Promise<GenerateArguments> {
+  if (!fs.statSync(yamlPath)) {
+    throw new Error("YAML file does not exist")
   }
-  
-  const files = target.generate(data)
 
-  for (const fn in files) {
-    const nfn = path.join(targetDir, fn)
-    mkdirpSync(path.dirname(nfn))
-    fs.writeFileSync(nfn, files[fn], "utf8")
-  }
+  // const target = loadTarget(targetName, config)
+  const unparsedTree = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8")) as OpenApiGenTree
+  const generateArgs = await generateArgumentsFromTree(target, unparsedTree, config)
+
+  return generateArgs
 }
