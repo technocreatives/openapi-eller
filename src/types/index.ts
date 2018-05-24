@@ -197,6 +197,7 @@ export interface TargetSecuritySchemes {
   isHttp?: boolean
   isBasic?: boolean
   isDigest?: boolean
+  isBearer?: boolean
 }
 
 export interface TargetModel {

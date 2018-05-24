@@ -180,7 +180,10 @@ function generateSecuritySchemes(
           : false,
         isDigest: securitySchemeObject.scheme
           ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Digest
-          : false
+          : false,
+        isBearer: securitySchemeObject.scheme
+          ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Bearer
+          : false,
         // TODO: security schemes might be functoins
       })
     } else {
