@@ -1,23 +1,17 @@
 import Foundation
 import Moya
-import OAuthSwift
+import AppAuth
 import RxSwift
 
 // Generated. Do not edit.
 
-public protocol {{{name}}}Interceptor: class {
-    var queryParameters: [String: String] { get }
-    var headers: [String: String] { get }
+public struct {{{name}}}InterceptorResult {
+    let headers: [String: String]
+    let queryParameters: [String: String]
 }
 
-extension {{{name}}}Interceptor {
-    public var queryParameters: [String: String] {
-        return [:]
-    }
-    
-    public var headers: [String: String] {
-        return [:]
-    }
+public protocol {{{name}}}Interceptor: class {
+    func intercept(request: {{{name}}}InterceptorResult) -> Single<{{{name}}}InterceptorResult>
 }
 
 {{#each security}}
@@ -25,39 +19,56 @@ extension {{{name}}}Interceptor {
 public class {{{../name}}}{{{name}}}Interceptor {
     let token: String
 
-{{#if inHeader}}
-    var headers: [String: String] {
-        return ["{{{key}}}": token]
-    }
-{{/if}}
-{{#if inQuery}}
-    var queryParameters: [String: String] {
-        return ["{{{key}}}": token]
-    }
-{{/if}}
-
     public init(token: String) {
         self.token = token
     }
+
+    public func intercept(request: {{{../name}}}InterceptorResult) -> Single<{{{../name}}}InterceptorResult> {
+{{#if inHeader}}
+        var newHeaders = request.headers
+        newHeaders["{{{key}}}"] = token
+        return Single.just({{{../name}}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters))
+{{/if}}
+{{#if inQuery}}
+        var newParams = request.queryParameters
+        newParams["{{{key}}}"] = token
+        return Single.just({{{../name}}}InterceptorResult(headers: request.headers, queryParameters: newParams))
+{{/if}}
+    }
+}
+
+public struct AuthError: Error {
+    let message: String
 }
 
 {{/if}}
 {{#if isOAuth2}}
-public class {{{../name}}}{{{name}}}OAuthInterceptor {
+public class {{{../name}}}{{{name}}}OAuth {
+    private(set) static var currentAuthFlow: OIDAuthorizationFlowSession? = nil
+
     private let authorizeURL = URL(string: "{{authorizationUrl}}")!
     private let accessTokenURL = URL(string: "{{tokenUrl}}")!
 {{#if refreshUrl}}
     private let refreshURL = URL(string: "{{refreshUrl}}")!
 {{/if}}
 
-    let clientId: String
-    let clientSecret: String
+    let clientID: String
     let redirectURL: URL
+    let config: OIDServiceConfiguration
+    
+    func redirectURL(fromCustom url: URL) -> URL {
+        var components = URLComponents(url: redirectURL, resolvingAgainstBaseURL: false)!
+        components.query = url.query
+        return components.url!
+    }
 
-    public init(clientId: String, clientSecret: String, redirectURL: URL) {
-        self.clientId = clientId
-        self.clientSecret = clientSecret
+    public init(clientID: String, redirectURL: URL) {
+        self.clientID = clientID
         self.redirectURL = redirectURL
+        
+        config = OIDServiceConfiguration(
+            authorizationEndpoint: authorizeURL,
+            tokenEndpoint: accessTokenURL)
     }
     
     public enum Scope: String {
@@ -66,19 +77,72 @@ public class {{{../name}}}{{{name}}}OAuthInterceptor {
 {{/each}}
     }
 
-    func authorize(scopes: [Scope], delimiter: String = " ") -> Single<OAuthSwiftCredential> {
-        var client = OAuth2Swift(
-            consumerKey: clientId,
-            consumerSecret: clientSecret,
-            authorizeUrl: authorizeURL.absoluteString,
-            responseType: "token"
-        )
+    public class OAuthInterceptor: {{{../name}}}Interceptor {
+        let authState: OIDAuthState
+        
+        init(authState: OIDAuthState) {
+            self.authState = authState
+        }
+        
+        public func intercept(request: {{{../name}}}InterceptorResult) -> Single<{{{../name}}}InterceptorResult> {
+            return Single.create(subscribe: { emitter in
+                self.authState.performAction(freshTokens: { (accessToken, idToken, error) in
+                    if let error = error {
+                        emitter(.error(error))
+                    } else if let token = accessToken {
+                        var newHeaders = request.headers
+                        newHeaders["Authorization"] = "Bearer \(token)"
+                        let newResult = {{{../name}}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters)
+                        emitter(.success(newResult))
+                    }
+                })
+                
+                return Disposables.create()
+            })
+        }
+    }
+    
+    static public func interceptor(authState: OIDAuthState) -> OAuthInterceptor {
+        return OAuthInterceptor(authState: authState)
+    }
 
-        client.allowMissingStateCheck = true
-
-        return client.rx.authorize(withCallbackURL: self.redirectURL,
-            scope: scopes.map { $0.rawValue }.joined(separator: delimiter),
-            state: "")
+    func authorize(with viewController: UIViewController, scopes: [Scope], clientSecret: String? = nil, additionalParameters: [String: String]? = nil) -> Single<OIDAuthState> {
+        if {{{../name}}}{{{name}}}OAuth.currentAuthFlow != nil {
+            return Single.error(AuthError(message: "Current flow is not nil"))
+        }
+        
+        let authReq = OIDAuthorizationRequest(
+            configuration: config,
+            clientId: clientID,
+            clientSecret: clientSecret,
+            scope: scopes.map { $0.rawValue }.joined(separator: " "),
+            redirectURL: redirectURL,
+            responseType: OIDResponseTypeCode,
+            state: nil,
+            codeVerifier: nil,
+            codeChallenge: nil,
+            codeChallengeMethod: nil,
+            additionalParameters: additionalParameters)
+        
+        return Single.create(subscribe: { emitter in
+            {{{../name}}}{{{name}}}OAuth.currentAuthFlow =
+                OIDAuthState.authState(
+                        byPresenting: authReq,
+                        presenting: viewController,
+                        callback: { (state: OIDAuthState?, err: Error?) in
+                    if let err = err {
+                        emitter(.error(err))
+                    } else if let state = state {
+                        emitter(.success(state))
+                    } else {
+                        fatalError("Neither state nor error were not null, and this is not recoverable.")
+                    }
+                })
+            
+            return Disposables.create {
+                {{{../name}}}{{{name}}}OAuth.currentAuthFlow = nil
+            }
+        })
     }
 }
 
@@ -87,6 +151,7 @@ public class {{{../name}}}{{{name}}}OAuthInterceptor {
 
 fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
     public init(baseURL: URL,
+                interceptors: [{{{name}}}Interceptor],
                 headers: [String: String] = [:],
                 queryParameters: [String: String] = [:],
                 requestClosure: @escaping RequestClosure = MoyaProvider.defaultRequestMapping,
@@ -97,26 +162,59 @@ fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
                 trackInflights: Bool = false) {
 
         let newEndpointClosure: EndpointClosure = { target in
-            let httpHeader = headers.merging(target.headers ?? [:], uniquingKeysWith: { _, new in new })
-            
-            var urlComponents = URLComponents(string: baseURL.absoluteString.appending(target.path))!
-            for (k, v) in queryParameters {
-                urlComponents.queryItems?.append(URLQueryItem(name: k, value: v))
-            }
-            
+            let urlComponents = URLComponents(string: baseURL.absoluteString.appending(target.path))!
             guard let url = urlComponents.url?.absoluteString else {
-                fatalError("Can not convert components to URL for \(target.path), with query parameters: \(queryParameters)")
+                fatalError("Can not convert components to URL for \(target.path)")
             }
-            
+
             return Endpoint(
                 url: url,
                 sampleResponseClosure: { return .networkResponse(200, Data()) },
                 method: target.method,
                 task: target.task,
-                httpHeaderFields: httpHeader)
+                httpHeaderFields: target.headers)
         }
         
-        super.init(endpointClosure: newEndpointClosure, requestClosure: requestClosure, stubClosure: stubClosure, callbackQueue: callbackQueue, manager: manager, plugins: plugins, trackInflights: trackInflights)
+        let newRequestClosure: RequestClosure = { (endpoint, done) in
+            var req = try! endpoint.urlRequest()
+
+            var resultObs = Single.just({{{name}}}InterceptorResult(headers: [:], queryParameters: [:]))
+
+            interceptors.forEach { interceptor in
+                resultObs = resultObs.flatMap { result in interceptor.intercept(request: result) }
+            }
+
+            resultObs.subscribe(onSuccess: { results in
+                if req.allHTTPHeaderFields == nil {
+                    req.allHTTPHeaderFields = [:]
+                }
+
+                req.allHTTPHeaderFields?.merge(results.headers, uniquingKeysWith: { _, new in new })
+
+                var urlComponents = URLComponents(string: req.url!.absoluteString)!
+                for (k, v) in results.queryParameters {
+                    urlComponents.queryItems?.append(URLQueryItem(name: k, value: v))
+                }
+
+                guard let url = urlComponents.url else {
+                    fatalError("Can not convert components to URL for \(req)")
+                }
+
+                req.url = url
+                done(.success(req))
+            }, onError: { err in
+                done(.failure(.encodableMapping(err)))
+            })
+        }
+
+        super.init(
+            endpointClosure: newEndpointClosure,
+            requestClosure: newRequestClosure,
+            stubClosure: stubClosure,
+            callbackQueue: callbackQueue,
+            manager: manager,
+            plugins: plugins,
+            trackInflights: trackInflights)
     }
 }
 
@@ -227,13 +325,13 @@ public class {{{name}}}Service {
     private let provider: MoyaConfigurableProvider<{{{name}}}>
 
 {{#if servers}}
-    public init(server: {{{name}}}Server) {
-        provider = MoyaConfigurableProvider(baseURL: server.url)
+    public init(server: {{{name}}}Server, interceptors: [{{{name}}}Interceptor] = [], plugins: [PluginType] = []) {
+        provider = MoyaConfigurableProvider(baseURL: server.url, interceptors: interceptors, plugins: plugins)
     }
-
+    
 {{/if}}
-    public init(baseURL: URL) {
-        provider = MoyaConfigurableProvider(baseURL: baseURL)
+    public init(baseURL: URL, interceptors: [{{{name}}}Interceptor] = [], plugins: [PluginType] = []) {
+        provider = MoyaConfigurableProvider(baseURL: baseURL, interceptors: interceptors, plugins: plugins)
     }
 {{#each groups}}
 {{#each endpoints}}
@@ -393,39 +491,3 @@ public struct {{{name}}}: Hashable, Codable {
 {{/if}}
 
 {{/each}}
-
-fileprivate extension Reactive where Base: OAuth2Swift {
-    func authorize(deviceToken: String) -> Single<OAuthSwiftCredential> {
-        return Single.create { single in
-            let request = self.base.authorize(
-                deviceToken: deviceToken,
-                success: {
-                    single(.success($0))
-                },
-                failure: {
-                    single(.error($0))
-                })
-
-            return Disposables.create { request?.cancel() }
-        }
-    }
-    
-    func authorize(withCallbackURL url: URL, scope: String, state: String, parameters: OAuthSwift.Parameters = [:], headers: OAuthSwift.Headers? = nil) -> Single<OAuthSwiftCredential> {
-        return Single.create { single in
-            let request = self.base.authorize(
-                withCallbackURL: url,
-                scope: scope,
-                state: state,
-                parameters: parameters,
-                headers: headers,
-                success: { (credential: OAuthSwiftCredential, _: OAuthSwiftResponse?, _: OAuthSwift.Parameters) in
-                    single(.success(credential))
-                },
-                failure: { (error: OAuthSwiftError) in
-                    single(.error(error))
-                })
-            
-            return Disposables.create { request?.cancel() }
-        }
-    }
-}
