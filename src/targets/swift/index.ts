@@ -31,7 +31,9 @@ const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8")
 export default class SwiftTarget extends Target {
   types: TargetTypeMap = typeResolvers("swift")
 
-  variable(name: string): string {
+  variable(n: string): string {
+    const name = n.toString()
+    
     if (/^\d+$/.test(name)) {
       if (name === "0") {
         return "zero"
