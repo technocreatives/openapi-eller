@@ -14,7 +14,7 @@ string:
   uri: URL
   url: URL
 number:
-  null: NSNumber
+  null: Double
   float: Float
   double: Double
 boolean:
