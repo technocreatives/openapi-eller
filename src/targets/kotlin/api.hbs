@@ -131,7 +131,7 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
 {{/if}}
     private val authActivityClass get() = {{{name}}}OAuthActivity::class.java
 
-    fun authorize(activity: Activity, scopes: List<Scope>? = null, prompt: String? = "consent"): Single<AuthState> {
+    fun authorize(activity: Activity, scopes: List<Scope>? = null, prompt: String? = null, additionParameters: Map<String, String>? = null): Single<AuthState> {
         val service = AuthorizationService(activity)
         
         return config.flatMap { config -> 
@@ -152,6 +152,7 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
     {{/if}}
                     .setScopes(scopes?.map { it.toString() })
                     .setPrompt(prompt)
+                    .setAdditionalParameters(additionParameters)
                     .build()
 
             val pendingIntent = PendingIntent.getActivity(
@@ -188,7 +189,8 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
 
     private inner class OAuthInterceptor(
             private val context: Context,
-            private val authState: AuthState
+            private val authState: AuthState,
+            private val clientSecret: String
     ): Interceptor {
         private fun refreshTokens(): String {
             val token = authState.accessToken
@@ -199,7 +201,7 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
             return Single.create<String> { emitter ->
                 val service = AuthorizationService(context)
 
-                authState.performActionWithFreshTokens(service, { accessToken, idToken, ex ->
+                authState.performActionWithFreshTokens(service, ClientSecretPost(clientSecret), { accessToken, idToken, ex ->
                     when {
                         ex != null -> emitter.onError(ex)
                         accessToken != null -> emitter.onSuccess(accessToken)
@@ -222,8 +224,8 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
         }
     }
 
-    fun interceptor(context: Context, authState: AuthState): Interceptor {
-        return OAuthInterceptor(context, authState)
+    fun interceptor(context: Context, authState: AuthState, clientSecret: String): Interceptor {
+        return OAuthInterceptor(context, authState, clientSecret)
     }
 }
         
