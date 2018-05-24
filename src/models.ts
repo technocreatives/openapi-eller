@@ -201,7 +201,7 @@ class ModelGenerator {
           properties[k].key == null &&
           properties[k].additionalProperties == null)
       .forEach((k) => {
-        logger.error(`${schema.key}:${k}: unhandled nested object`)
+        logger.error(`${schema.key}.${k}: unhandled nested object`)
       })
 
     // Strange enum handling that could do with a refactor
