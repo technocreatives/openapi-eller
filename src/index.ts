@@ -233,9 +233,11 @@ export function loadConfig(configPath: string | undefined): ConfigObject {
     if (!fs.statSync(configPath)) {
       throw new Error("Config file does not exist")
     }
-    let result = yaml.safeLoad(fs.readFileSync(configPath, "utf8"))
+    const result = yaml.safeLoad(fs.readFileSync(configPath, "utf8"))
     if (result != null) {
       config = result
+    } else {
+      throw new Error("Config file is empty")
     }
   }
   return config
