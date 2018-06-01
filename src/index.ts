@@ -233,7 +233,10 @@ export function loadConfig(configPath: string | undefined): ConfigObject {
     if (!fs.statSync(configPath)) {
       throw new Error("Config file does not exist")
     }
-    config = JSON.parse(fs.readFileSync(configPath, "utf8"))
+    let result = yaml.safeLoad(fs.readFileSync(configPath, "utf8"))
+    if (result != null) {
+      config = result
+    }
   }
   return config
 }
