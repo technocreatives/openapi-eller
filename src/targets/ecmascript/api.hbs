@@ -1,10 +1,10 @@
 {{#if config.commonjs}}
 const fetch = require("node-fetch")
-const atob = require("atob")
+import { encode as btoa } from "base-64";
 {{/if}}
 {{#if config.es6}}
 import fetch from "node-fetch"
-import atob from "atob"
+import { encode as btoa } from "base-64";
 {{/if}}
 {{#if @root.config.urlShim}}
 
@@ -70,7 +70,7 @@ module.exports.{{name}}ApiKeyInterceptor = {{name}}ApiKeyInterceptor
 {{#if isBasic}}
 {{#if @root.config.es6}}export {{/if}}function {{name}}BasicAuthInterceptor(username, password) {
   return function interceptor(url, req) {
-    const base64Data = atob(`${username}:${password}`)
+    const base64Data = btoa(`${username}:${password}`)
     const header = `Basic ${base64Data}`
 {{/if}}
 {{#if isBearer}}
