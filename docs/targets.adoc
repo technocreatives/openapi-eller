@@ -14,6 +14,10 @@ In order to use this target you can use any of these target names:
 * js
 * es
 
+==== Dependencies
+
+You need to install the `base-64` and `node-fetch` packages.
+
 ==== Target specific options
 
 These are the options you can use for the JavaScript target.
