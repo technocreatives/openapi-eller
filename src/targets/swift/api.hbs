@@ -5,45 +5,45 @@ import RxSwift
 
 // Generated. Do not edit.
 
-public struct {{{name}}}InterceptorResult {
+public struct {{@root.config.prefix}}InterceptorResult {
     let headers: [String: String]
     let queryParameters: [String: String]
 }
 
-public protocol {{{name}}}Interceptor: class {
-    func intercept(request: {{{name}}}InterceptorResult) -> Single<{{{name}}}InterceptorResult>
+public protocol {{@root.config.prefix}}Interceptor: class {
+    func intercept(request: {{@root.config.prefix}}InterceptorResult) -> Single<{{@root.config.prefix}}InterceptorResult>
 }
 
 {{#each security}}
 {{#if isApiKey}}
-public class {{{../name}}}{{{name}}}Interceptor {
+public class {{{name}}}Interceptor : {{@root.config.prefix}}Interceptor {
     let token: String
 
     public init(token: String) {
         self.token = token
     }
 
-    public func intercept(request: {{{../name}}}InterceptorResult) -> Single<{{{../name}}}InterceptorResult> {
+    public func intercept(request: {{@root.config.prefix}}InterceptorResult) -> Single<{{@root.config.prefix}}InterceptorResult> {
 {{#if inHeader}}
         var newHeaders = request.headers
         newHeaders["{{{key}}}"] = token
-        return Single.just({{{../name}}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters))
+        return Single.just({{@root.config.prefix}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters))
 {{/if}}
 {{#if inQuery}}
         var newParams = request.queryParameters
         newParams["{{{key}}}"] = token
-        return Single.just({{{../name}}}InterceptorResult(headers: request.headers, queryParameters: newParams))
+        return Single.just({{@root.config.prefix}}InterceptorResult(headers: request.headers, queryParameters: newParams))
 {{/if}}
     }
 }
 
-public struct AuthError: Error {
+public struct {{@root.config.prefix}}AuthError: Error {
     let message: String
 }
 
 {{/if}}
 {{#if isOAuth2}}
-public class {{{../name}}}{{{name}}}OAuth {
+public class {{{name}}}OAuth {
     private(set) static var currentAuthFlow: OIDAuthorizationFlowSession? = nil
 
     private let authorizeURL = URL(string: "{{authorizationUrl}}")!
@@ -107,7 +107,7 @@ public class {{{../name}}}{{{name}}}OAuth {
     }
 
     func authorize(with viewController: UIViewController, scopes: [Scope], clientSecret: String? = nil, additionalParameters: [String: String]? = nil) -> Single<OIDAuthState> {
-        if {{{../name}}}{{{name}}}OAuth.currentAuthFlow != nil {
+        if {{{name}}}OAuth.currentAuthFlow != nil {
             return Single.error(AuthError(message: "Current flow is not nil"))
         }
         
@@ -125,7 +125,7 @@ public class {{{../name}}}{{{name}}}OAuth {
             additionalParameters: additionalParameters)
         
         return Single.create(subscribe: { emitter in
-            {{{../name}}}{{{name}}}OAuth.currentAuthFlow =
+            {{{name}}}OAuth.currentAuthFlow =
                 OIDAuthState.authState(
                         byPresenting: authReq,
                         presenting: viewController,
@@ -140,7 +140,7 @@ public class {{{../name}}}{{{name}}}OAuth {
                 })
             
             return Disposables.create {
-                {{{../name}}}{{{name}}}OAuth.currentAuthFlow = nil
+                {{{name}}}OAuth.currentAuthFlow = nil
             }
         })
     }
@@ -149,9 +149,9 @@ public class {{{../name}}}{{{name}}}OAuth {
 {{/if}}
 {{/each}}
 
-fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
+fileprivate class {{@root.config.prefix}}MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
     public init(baseURL: URL,
-                interceptors: [{{{name}}}Interceptor],
+                interceptors: [{{@root.config.prefix}}Interceptor],
                 headers: [String: String] = [:],
                 queryParameters: [String: String] = [:],
                 requestClosure: @escaping RequestClosure = MoyaProvider.defaultRequestMapping,
@@ -178,7 +178,7 @@ fileprivate class MoyaConfigurableProvider<T: TargetType>: MoyaProvider<T> {
         let newRequestClosure: RequestClosure = { (endpoint, done) in
             var req = try! endpoint.urlRequest()
 
-            var resultObs = Single.just({{{name}}}InterceptorResult(headers: [:], queryParameters: [:]))
+            var resultObs = Single.just({{@root.config.prefix}}InterceptorResult(headers: [:], queryParameters: [:]))
 
             interceptors.forEach { interceptor in
                 resultObs = resultObs.flatMap { result in interceptor.intercept(request: result) }
@@ -322,16 +322,16 @@ enum {{{name}}}: TargetType {
 }
 
 public class {{{name}}}Service {
-    private let provider: MoyaConfigurableProvider<{{{name}}}>
+    private let provider: {{@root.config.prefix}}MoyaConfigurableProvider<{{{name}}}>
 
 {{#if servers}}
-    public init(server: {{{name}}}Server, interceptors: [{{{name}}}Interceptor] = [], plugins: [PluginType] = []) {
-        provider = MoyaConfigurableProvider(baseURL: server.url, interceptors: interceptors, plugins: plugins)
+    public init(server: {{{name}}}Server, interceptors: [{{@root.config.prefix}}Interceptor] = [], plugins: [PluginType] = []) {
+        provider = {{@root.config.prefix}}MoyaConfigurableProvider(baseURL: server.url, interceptors: interceptors, plugins: plugins)
     }
     
 {{/if}}
-    public init(baseURL: URL, interceptors: [{{{name}}}Interceptor] = [], plugins: [PluginType] = []) {
-        provider = MoyaConfigurableProvider(baseURL: baseURL, interceptors: interceptors, plugins: plugins)
+    public init(baseURL: URL, interceptors: [{{@root.config.prefix}}Interceptor] = [], plugins: [PluginType] = []) {
+        provider = {{@root.config.prefix}}MoyaConfigurableProvider(baseURL: baseURL, interceptors: interceptors, plugins: plugins)
     }
 {{#each groups}}
 {{#each endpoints}}

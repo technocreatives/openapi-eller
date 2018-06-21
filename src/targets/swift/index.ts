@@ -28,6 +28,8 @@ const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8")
 // After the first character, digits and combining Unicode characters are also allowed.
 // const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+const upperCamel = _.flow([_.camelCase, _.upperFirst])
+
 export default class SwiftTarget extends Target {
   types: TargetTypeMap = typeResolvers("swift")
 
@@ -56,13 +58,14 @@ export default class SwiftTarget extends Target {
   }
 
   cls(name: string, isNested?: boolean | undefined): string {
-    const hasAt = name.startsWith("@")
+    const { prefix } = this.config
+    const newName = `${prefix || ""}${upperCamel(name)}`
 
-    const newName = _.flow([_.camelCase, _.upperFirst])(name)
-    if (reservedWords.indexOf(newName) > -1) {
-      return (hasAt ? "_" + newName : newName + "_")
+    if (reservedWords.includes(newName)) {
+      return newName + "_"
     }
-    return hasAt ? "_" + newName : newName
+
+    return newName
   }
 
   enumKey(key: string): string { return this.variable(key) }

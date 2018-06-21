@@ -65,13 +65,14 @@ export interface ConfigObject {
   namespace?: string
   renames?: { [schemaKey: string]: string }
   types?: { [typeKey: string]: {
-    [formatKey: string]: string,
+    [formatKey: string]: string
   }}
   fieldRenames?: {[schemaKey: string]: {
-    [fieldKey: string]: string;
+    [fieldKey: string]: string
   }}
   useGroups?: boolean
   include?: string[]
+  prefix?: string
 }
 
 export abstract class Target {
