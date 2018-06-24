@@ -151,7 +151,7 @@ export default class EcmaScriptTypeScriptDefinitionTarget extends Target {
     return typeof (p as any).$ref === "undefined"
   }
 
-  operationParams(route: OperationObject, bodyName: string) {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }) {
     let x: string[] = []
     
     if (route.parameters) {

@@ -12,7 +12,7 @@ import {
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
-import { GeneratorVisitor, SchemaContext } from "visitor";
+import { GeneratorVisitor, SchemaContext, isComplexType } from "visitor";
 
 function findResponseSchema(responses: ResponsesObject): SchemaObject | undefined {
   const successResponse: ResponseObject = find(
@@ -31,10 +31,7 @@ function findResponseSchema(responses: ResponsesObject): SchemaObject | undefine
     return
   }
 
-console.log(responses)
   const firstObject = find(successResponse.content)
-  console.log("FIRST!", successResponse.content)
-  console.log("FIRST?", firstObject)
 
   if (firstObject && firstObject.schema != null) {
     return firstObject.schema as SchemaObject
@@ -103,9 +100,8 @@ export function generateEndpoints(
       ? target.cls(responseSchemaContext.name(visitor))
       : null
 
-    if (responseSchema != null && responseSchema.allOf) {
-      console.error(responseSchema)
-      console.error(anonymousResponseName)
+    if (responseSchema && responseSchema.type === "array") {
+      console.log(responseSchema)
     }
 
     const schemaType = resolveSchemaType(target, null, responseSchema || null, anonymousResponseName)
@@ -118,7 +114,24 @@ export function generateEndpoints(
       }
     }
 
-    const operationParams = target.operationParams(operationObject, anonymousReqBodyName)
+    // TODO: not this
+    const paramNames = operationObject.parameters.reduce((acc, param) => {
+      const { schema } = param
+      if (schema == null || !isComplexType(schema)) {
+        acc[param.name] = param.name
+      } else {
+        const ctx = visitor.schemas.get(schema)
+        if (ctx == null) {
+          console.log(schema)
+          throw new Error('wat')
+        }
+        acc[param.name] = ctx.name(visitor)
+      }
+      return acc
+    }, <{[key: string]: string}>{})
+
+    const operationParams = target.operationParams(operationObject, anonymousReqBodyName, paramNames)
+    // TODO: extra param with real names yo
     const opParamDefaults = target.operationParamsDefaults(operationObject, anonymousReqBodyName)
       || operationParams
 

@@ -104,23 +104,29 @@ export default class KotlinTarget extends Target {
     return m.toUpperCase()
   }
 
-  operationParams(route: OperationObject, bodyName: string): string {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
 
     if (route.parameters) {
       x = route.parameters.map((p) => {
         const param = p as ParameterObject
+        let decorator
+
         switch (param.in) {
         case "path":
-          // tslint:disable-next-line:max-line-length
-          return `@Path("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, null, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          decorator = "@Path"
+          break
         case "query":
-          // tslint:disable-next-line:max-line-length
-          return `@Query("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, null, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          decorator = "@Query"
+          break
         default:
           // tslint:disable-next-line:max-line-length
           throw new Error(`Unhandled parameter type: ${param.in}, route: ${JSON.stringify(route.parameters)}`)
         }
+
+        const pn = paramNames[param.name]
+        // tslint:disable-next-line:max-line-length
+        return `${decorator}("${param.name}") ${this.variable(pn)}: ${resolveSchemaType(this, null, param.schema as SchemaObject, pn)}${param.required ? "" : "? = null"}`
       })
     }
 
