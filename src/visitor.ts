@@ -387,7 +387,7 @@ function isComponentSchema(path: (string | number)[]): boolean {
     return path.length === 3 && path[0] === "components" && path[1] === "schema"
 }
 
-function isComplexType(schema: SchemaObject): boolean {
+export function isComplexType(schema: SchemaObject): boolean {
     const { type } = schema
     
     if (schema.allOf || schema.anyOf || schema.oneOf) {
@@ -398,81 +398,87 @@ function isComplexType(schema: SchemaObject): boolean {
 }
 
 export class SchemaContext {
-    path: (string | number)[]
-    children: Map<SchemaObject, SchemaContext>
-    combiner: Combiner | null
-    isTransient: boolean
+  schema: SchemaObject
+  path: (string | number)[]
+  children: Map<SchemaObject, SchemaContext>
+  combiner: Combiner | null
+  isTransient: boolean
 
-    name(visitor: GeneratorVisitor): string {
-      const thingo = () => {
-        if (isComponentSchema(this.path)) {
-          return this.path[2] as string
-        }
-
-        const firstPath = this.path.slice()
-        let len = firstPath.length
-
-        if (firstPath[len - 1] === "schema") {
-          len--
-        }
-
-        if (firstPath[len - 2] === "parameters") {
-          const pathKey = firstPath[len - 4]
-          const httpVerb = firstPath[len - 3]
-          const key = `${pathKey}.${httpVerb}`
-          return `${visitor.pathMap[key].operationId}.${visitor.paramMap[key].name}`
-        }
-
-        if (len === 4 && firstPath[0] === "components" && firstPath[1] === "requestBodies") {
-          return firstPath[2].toString()
-        }
-
-        if (len === 4 && firstPath[0] === "components" && firstPath[1] === "responses") {
-          return firstPath[2].toString()
-        }
-
-        if (typeof firstPath[len - 1] === "number") {
-          return `${firstPath[len - 2]}$${firstPath[len - 1]}`
-        }
-
-        if (len === 6 && firstPath[0] === "paths") {
-          const { operationId } = visitor.pathMap[`${firstPath[1]}.${firstPath[2]}`]
-          return `${operationId}Response`
-        }
-
-        return firstPath[len - 1] as string
+  name(visitor: GeneratorVisitor): string {
+    const thingo = () => {
+      if (this.schema.type === "array") {
+        return this.children.values().next().value.name(visitor)
       }
 
-      const ret = thingo()
-      if (ret === "application/json") {
-        throw new Error(pathAsString(this.path))
+      if (isComponentSchema(this.path)) {
+        return this.path[2] as string
       }
-      return ret
+
+      const firstPath = this.path.slice()
+      let len = firstPath.length
+
+      if (firstPath[len - 1] === "schema") {
+        len--
+      }
+
+      if (firstPath[len - 2] === "parameters") {
+        const pathKey = firstPath[len - 4]
+        const httpVerb = firstPath[len - 3]
+        const key = `${pathKey}.${httpVerb}`
+        return `${visitor.pathMap[key].operationId}.${visitor.paramMap[key].name}`
+      }
+
+      if (len === 4 && firstPath[0] === "components" && firstPath[1] === "requestBodies") {
+        return firstPath[2].toString()
+      }
+
+      if (len === 4 && firstPath[0] === "components" && firstPath[1] === "responses") {
+        return firstPath[2].toString()
+      }
+
+      if (typeof firstPath[len - 1] === "number") {
+        return `${firstPath[len - 2]}$${firstPath[len - 1]}`
+      }
+
+      if (len === 6 && firstPath[0] === "paths") {
+        const { operationId } = visitor.pathMap[`${firstPath[1]}.${firstPath[2]}`]
+        return `${operationId}Response`
+      }
+
+      return firstPath[len - 1] as string
     }
 
-    constructor(path: (string | number)[], combiner: Combiner | null = null, isTransient: boolean = false) {
-        this.path = path
-        this.children = new Map()
-        this.combiner = combiner
-        this.isTransient = isTransient
+    const ret = thingo()
+    if (ret === "application/json") {
+      throw new Error(pathAsString(this.path))
     }
+    return ret
+  }
 
-    toString(visitor: GeneratorVisitor, indent = 0): string {
-        const padding = Array(indent + 1).join(" ")
-        let o = `${padding}${this.name(visitor)}`
-        if (this.isTransient) {
-            o += " (transient)"
-        }
-        if (this.combiner) {
-            o += ` (${this.combiner})`
-        }
-        o += ` <${pathAsString(this.path)}>`
-        this.children.forEach((ctx, child) => {
-            o += "\n"
-            o += ctx.toString(visitor, indent + 2)
-        })
-        return o
+  constructor(schema: SchemaObject, path: (string | number)[], combiner: Combiner | null = null, isTransient: boolean = false) {
+    this.schema = schema
+    this.path = path
+    this.children = new Map()
+    this.combiner = combiner
+    this.isTransient = isTransient
+  }
+
+  toString(visitor: GeneratorVisitor, indent = 0): string {
+    const padding = Array(indent + 1).join(" ")
+    let o = `${padding}${this.name(visitor)}`
+    if (this.isTransient) {
+      o += " (transient)"
     }
+    if (this.combiner) {
+      o += ` (${this.combiner})`
+    }
+    o += ` <${pathAsString(this.path)}>`
+    this.children.forEach((ctx, child) => {
+      o += "\n"
+      o += ctx.toString(visitor, indent + 2)
+    })
+    return o
+  }
 }
 
 export class GeneratorVisitor extends Visitor {
@@ -514,7 +520,7 @@ export class GeneratorVisitor extends Visitor {
             const childCtx = this.schemas.get(schema)
 
             if (childCtx == null) {
-                const newCtx = new SchemaContext(this.path(), null, true)
+                const newCtx = new SchemaContext(schema, this.path(), null, true)
                 parentCtx.children.set(schema, newCtx)
                 this.schemas.set(schema, newCtx)
             } else {
@@ -524,7 +530,7 @@ export class GeneratorVisitor extends Visitor {
             const ctx = this.schemas.get(schema) as SchemaContext
 
             if (ctx == null) {
-                this.schemas.set(schema, new SchemaContext(this.path(), combiner))
+                this.schemas.set(schema, new SchemaContext(schema, this.path(), combiner))
             }
         }
     }
@@ -626,7 +632,9 @@ export class ModelGenerator {
     key: string
   ): TargetField {
     const baseName = propertySchema.title || key
-    const type = resolveType(this.target, ctx, schema, key, propertySchema)
+    const propertySchemaCtx = this.visitor.schemas.get(propertySchema)
+    const pkey = propertySchemaCtx ? propertySchemaCtx.name(this.visitor) : key
+    const type = resolveType(this.target, ctx, schema, pkey, propertySchema)
     const name = this.fieldRename(schema, key) || this.target.variable(baseName)
 
     return {

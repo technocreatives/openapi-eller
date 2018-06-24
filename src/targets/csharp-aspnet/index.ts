@@ -24,7 +24,7 @@ export default class AspNetTarget extends CSharpTarget {
     return `JsonResult<${type}>`
   }
 
-  operationParams(route: OperationObject, bodyName: string): string {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
     
     if (route.parameters) {

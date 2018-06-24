@@ -96,7 +96,7 @@ export abstract class Target {
   abstract url(thing: string): string
   abstract servers(servers: ServerObject[]): TargetServer[]
   abstract generate(args: GenerateArguments): { [filename: string]: string }
-  abstract operationParams(route: Operation, bodyName: string): string
+  abstract operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
   
   operationParamsDefaults(route: Operation, bodyName: string): string | undefined {
     return
@@ -157,7 +157,7 @@ export interface TargetObject {
     name: string;
     values: object;
   }[]
-  operationParams(route: Operation, bodyName: string): string
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
   operationParamsDefaults?(route: Operation, bodyName: string): string
   operationArgs?(route: Operation, bodyName: string): string
   operationKwargs?(route: Operation, bodyName: string): string

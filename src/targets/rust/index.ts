@@ -98,7 +98,7 @@ export default class RustTarget extends Target {
     return { "Generated.rs": apiTmpl(args) }
   }
 
-  operationParams(route: OperationObject, bodyName: string): string {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
     return "TODO"
   }
 }

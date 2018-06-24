@@ -106,7 +106,7 @@ export default class CSharpTarget extends Target {
     return `Http${_.upperFirst(m)}`
   }
 
-  operationParams(route: OperationObject, bodyName: string): string {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
     if (!route || !route.parameters) {
       throw new Error("Missing parameter information")
     }

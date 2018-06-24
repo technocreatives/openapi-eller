@@ -115,7 +115,7 @@ export default class SwiftTarget extends Target {
     return `${x.join(", ")}`
   }
 
-  operationParams(route: OperationObject, bodyName: string): string {
+  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
     return this.operationParamsImpl(route, bodyName)
   }
 
