@@ -113,7 +113,7 @@ export default class CSharpTarget extends Target {
     const params = route.parameters as ParameterObject[]
     const x = params.map((p) => {
       // tslint:disable-next-line:max-line-length
-      return `${resolveSchemaType(this, (<OpenApiGenSchema>p.schema), p.name)} ${_.camelCase(p.name)}`
+      return `${resolveSchemaType(this, null, (<OpenApiGenSchema>p.schema), p.name)} ${_.camelCase(p.name)}`
     })
     return `(${x.join(",\n            ")})`
   }

@@ -1,46 +1,20 @@
 import { find, values } from "lodash"
-import { 
-  OpenApiGenTree,
+import {
   Target,
   ConfigObject,
   TargetEndpointsGroup,
-  OpenApiGenSchema,
-  EndpointIteration
+  OpenApiGenSchema
 } from "types"
 import {
   ResponseObject,
-  ResponsesObject
+  ResponsesObject,
+  SchemaObject
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
+import { GeneratorVisitor, SchemaContext } from "visitor";
 
-const VALID_HTTP_METHODS = [
-  "get", "put", "post", "delete", "options", "head", "patch", "trace"
-]
-
-export function endpointIterator(tree: OpenApiGenTree) {
-  return function* endpointIterator() {
-    for (const routePath in tree.paths) {
-      const pathObject = tree.paths[routePath]
-
-      for (const httpMethod in pathObject) {
-        const operationObject = pathObject[httpMethod]
-
-        if (!VALID_HTTP_METHODS.includes(httpMethod)) {
-          continue
-        }
-
-        const ret: EndpointIteration = {
-          routePath, pathObject, httpMethod, operationObject
-        }
-        
-        yield ret
-      }
-    }
-  }()
-}
-
-function findResponseSchema(responses: ResponsesObject) {
+function findResponseSchema(responses: ResponsesObject): SchemaObject | undefined {
   const successResponse: ResponseObject = find(
     responses, 
     (responseObject: ResponseObject, statusCode) => {
@@ -57,29 +31,34 @@ function findResponseSchema(responses: ResponsesObject) {
     return
   }
 
+console.log(responses)
   const firstObject = find(successResponse.content)
+  console.log("FIRST!", successResponse.content)
+  console.log("FIRST?", firstObject)
 
   if (firstObject && firstObject.schema != null) {
-    return firstObject.schema as OpenApiGenSchema
+    return firstObject.schema as SchemaObject
   }
 }
 
 export function generateEndpoints(
-  tree: OpenApiGenTree, 
+  visitor: GeneratorVisitor,
   target: Target, 
   config: ConfigObject
 ): TargetEndpointsGroup[] | null {
   const isGroupingEnabled = config.useGroups || false
   const groups: {[groupName: string]: TargetEndpointsGroup} = {}
-
-  for (const { routePath, httpMethod, operationObject } of endpointIterator(tree)) {
+  
+  for (const operationId in visitor.operations) {
+    const operationObject = visitor.operations[operationId]
+    
     if (config && config.include) {
       if (!operationObject.tags) {
         continue
       }
 
       const include = config.include
-      if (!operationObject.tags.find((tag: string) => include.indexOf(tag) > -1)) {
+      if (!operationObject.tags.find((tag: string) => include.includes(tag))) {
         continue
       }
     }
@@ -93,21 +72,43 @@ export function generateEndpoints(
       throw new Error(`No responses field found for ${JSON.stringify(operationObject)}`)
     }
 
-    let responseSchema
+    let responseSchema: SchemaObject | undefined
+    let responseSchemaContext: SchemaContext | undefined
+
     try {
-      responseSchema = findResponseSchema(operationObject.responses) || null
+      const r = findResponseSchema(operationObject.responses)
+      if (r != null) {
+        const rc = visitor.schemas.get(r)
+        
+        if (rc == null) {
+          console.error("EEEEEE", r)
+          throw new Error()
+        }
+        
+        responseSchema = r
+        responseSchemaContext = rc
+      }
     } catch (err) {
-      throw new Error(`Invalid response found for ${JSON.stringify(operationObject)}`)
+      throw new Error(`Invalid response found for operationId: ${operationObject.operationId}`)
     }
 
     if (!operationObject.operationId && !operationObject.summary) {
       // tslint:disable-next-line:max-line-length
       throw new Error(`No operationId or summary found for route: ${JSON.stringify(operationObject)}`)
     }
-    const operationId = target.operationId(operationObject)
+
+    // TODO add req body
     const anonymousReqBodyName = `${target.cls(operationId)}Body`
-    const anonymousResponseName = `${target.cls(operationId)}Response`
-    const schemaType = resolveSchemaType(target, responseSchema, anonymousResponseName)
+    const anonymousResponseName = responseSchemaContext != null
+      ? target.cls(responseSchemaContext.name(visitor))
+      : null
+
+    if (responseSchema != null && responseSchema.allOf) {
+      console.error(responseSchema)
+      console.error(anonymousResponseName)
+    }
+
+    const schemaType = resolveSchemaType(target, null, responseSchema || null, anonymousResponseName)
     const returnType = target.returnType(schemaType)
 
     if (!groups[group]) {
@@ -124,8 +125,8 @@ export function generateEndpoints(
     groups[group].endpoints.push({
       operationId,
       returnType,
-      httpMethod: target.httpMethod(httpMethod),
-      url: target.pathUrl(routePath),
+      httpMethod: target.httpMethod(operationObject.httpVerb),
+      url: target.pathUrl(operationObject.urlPath),
       // TODO: reimplement per-endpoint security handling
       // security: target.security
       //     ? target.security(operationObject.security || [])

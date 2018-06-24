@@ -30,7 +30,7 @@ export default class AspNetTarget extends CSharpTarget {
     if (route.parameters) {
       const params = route.parameters as ParameterObject[]
       x = params.map((p) => {
-        const type = resolveSchemaType(this, (<OpenApiGenSchema>p.schema), p.name)
+        const type = resolveSchemaType(this, null, (<OpenApiGenSchema>p.schema), p.name)
         
         const hasQMark = type === "DateTime" 
           || (type !== "string" && type.toLowerCase() === type) 
@@ -47,7 +47,7 @@ export default class AspNetTarget extends CSharpTarget {
       if (k) {
         const content = (<RequestBodyObject>route.requestBody).content[k]
         // tslint:disable-next-line:max-line-length
-        x.push(`${resolveSchemaType(this, (<OpenApiGenSchema>content.schema), bodyName)} body`)
+        x.push(`${resolveSchemaType(this, null, (<OpenApiGenSchema>content.schema), bodyName)} body`)
       }
     }
 

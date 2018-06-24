@@ -105,7 +105,7 @@ export default class SwiftTarget extends Target {
       const param = p as ParameterObject
       const schema = param.schema as OpenApiGenSchema
       const variable = this.variable(param.name)
-      const type = resolveSchemaType(this, schema, param.name)
+      const type = resolveSchemaType(this, null, schema, param.name)
       return `${variable}: ${type}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
     })
     

@@ -16,8 +16,8 @@
         "typeRoots": [
             "../node_modules/@types",
             "./types"
-        ],
-        "noUnusedLocals": true,
+        ]
+        // "noUnusedLocals": true,
     },
     "include": [
         "src/**/*",

@@ -18,102 +18,112 @@ import {
   ParameterObject
 } from "openapi3-ts"
 
-import { generateModels } from "./models"
-import { generateEndpoints, endpointIterator } from "./endpoints"
+// import { generateModels } from "./models"
+import { generateEndpoints } from "./endpoints"
 import { resolveTarget } from "./targets"
+import { GeneratorVisitor, ModelGenerator } from "visitor";
+// import logger from "winston"
 
-function parseOpenApiGenTree(tree: OpenApiGenTree) {
-  if (!tree.servers) {
-    throw new Error(`Unexpected structure: Servers missing`)
-  }
+// function parseOpenApiGenTree(tree: OpenApiGenTree) {
+//   if (!tree.servers) {
+//     throw new Error(`Unexpected structure: Servers missing`)
+//   }
 
-  // Add keys to schemas
-  if (tree && tree.components) {
-    const { schemas, parameters } = tree.components
+//   // Resolve $refs
+//   tree = jref.resolve(tree) as OpenApiGenTree
 
-    if (schemas != null) {
-      for (const k in schemas) {
-        const schema = schemas[k]
+//   // Merge all "allOf"
+//   if (tree.components && tree.components.schemas) {
+//     Object.keys(tree.components.schemas).forEach((k) => {
+//       if (!tree || !tree.components || !tree.components.schemas) {
+//         return
+//       }
+//       let schema = tree.components.schemas[k]
 
-        if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
-          continue
-        }
+//       if (schema.allOf) {
+//         console.log(schema)
+//         const newSchema = Object.assign({}, ...schema.allOf)
+//         tree.components.schemas[k] = newSchema
+//         schema = newSchema
+//       }
 
-        schemas[k].key = k
+//       if (schema.properties) {
+//         Object.keys(schema.properties).forEach((k) => {
+//           if (!schema.properties) {
+//             return
+//           }
+//           const prop = schema.properties[k] as SchemaObject
 
-        // Ensure titles have known origins
-        if (schemas[k].title) {
-          schemas[k].hasModelTitle = true
-        }
-      }
-    }
+//           if (prop.allOf) {
+//             schema.properties[k] = Object.assign({}, ...prop.allOf)
+//           }
+//         })
+//       }
+//     })
+//   }
 
-    if (parameters != null) {
-      for (const k in parameters) {
-        const schema = parameters[k].schema as OpenApiGenSchema | undefined
+//   // Add keys to schemas
+//   if (tree && tree.components) {
+//     const { schemas, parameters } = tree.components
 
-        if (schema != null) {
-          if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
-            continue
-          }
+//     if (schemas != null) {
+//       for (const k in schemas) {
+//         const schema = schemas[k]
 
-          (schema as OpenApiGenSchema).key = k
-          // logger.warn(`parameter keyed: ${k}`)
-        }
-      }
-    }
-  }
+//         if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
+//           continue
+//         }
 
-  // Add parameters to methods
-  for (const { operationObject, pathObject } of endpointIterator(tree)) {
-    const params = pathObject.parameters || []
-    operationObject.parameters = params.concat(operationObject.parameters || [])
+//         schemas[k].key = k
+
+//         // Ensure titles have known origins
+//         if (schemas[k].title) {
+//           schemas[k].hasModelTitle = true
+//         }
+//       }
+//     }
+
+//     if (parameters != null) {
+//       for (const k in parameters) {
+//         const schema = parameters[k].schema as OpenApiGenSchema | undefined
+
+//         if (schema != null) {
+//           if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
+//             continue
+//           }
+
+//           (schema as OpenApiGenSchema).key = k
+//           // logger.warn(`parameter keyed: ${k}`)
+//         }
+//       }
+//     }
+//   }
+
+//   // Add parameters to methods
+//   for (const { operationObject, pathObject } of endpointIterator(tree)) {
+//     const params = pathObject.parameters || []
+//     operationObject.parameters = params.concat(operationObject.parameters || [])
     
-    for (const defn of operationObject.parameters as ParameterObject[]) {
-      const param = defn as ParameterObject
+//     for (const defn of operationObject.parameters as ParameterObject[]) {
+//       const param = defn as ParameterObject
 
-      if (param.schema != null) {
-        const schema = param.schema as OpenApiGenSchema
+//       if (param.schema != null) {
+//         const schema = param.schema as OpenApiGenSchema
 
-        if (schema.type === "object" || schema.type === "array" || schema.enum != null) {
-          if (operationObject.operationId == null) {
-            throw new Error("No operationId found for " + JSON.stringify(operationObject))
-          }
+//         if (schema.type === "object" || schema.type === "array" || schema.enum != null) {
+//           if (operationObject.operationId == null) {
+//             throw new Error("No operationId found for " + JSON.stringify(operationObject))
+//           }
           
-          schema.key = `${operationObject.operationId}_${param.name}`
-          // logger.warn(`parameter keyed: ${operationObject.key}`)
-        }
-      }
-    }
-  }
+//           schema.key = `${operationObject.operationId}_${param.name}`
+//           // logger.warn(`parameter keyed: ${operationObject.key}`)
+//         }
+//       }
+//     }
+//   }
 
-  // Resolve $refs
-  tree = jref.resolve(tree) as OpenApiGenTree
-
-  // Merge all "allOf"
-  if (tree.components && tree.components.schemas) {
-    Object.keys(tree.components.schemas).forEach((k) => {
-      if (!tree || !tree.components || !tree.components.schemas) {
-        return
-      }
-      const schema = tree.components.schemas[k]
-      if (schema.properties) {
-        Object.keys(schema.properties).forEach((k) => {
-          if (!schema.properties) {
-            return
-          }
-          const prop = schema.properties[k] as SchemaObject
-
-          if (prop.allOf) {
-            schema.properties[k] = Object.assign({}, ...prop.allOf)
-          }
-        })
-      }
-    })
-  }
-
-  return tree
-}
+//   return tree
+// }
 
 function generateSecuritySchemes(
   tree: OpenApiGenTree, 
@@ -203,8 +213,17 @@ async function generateTemplateData(
     throw new Error("Did not find supported version or `openapi` field.")
   }
 
-  const models = generateModels(tree, target)
-  const groups = generateEndpoints(tree, target, config)
+  const visitor = new GeneratorVisitor(tree)
+  visitor.start()
+
+  visitor.schemas.forEach((ctx) => {
+    console.log(ctx.toString(visitor))
+  })
+
+  const modelGenerator = new ModelGenerator(target, visitor)
+
+  const models = modelGenerator.generate() //generateModels(tree, target)
+  const groups = generateEndpoints(visitor, target, config)
 
   const data = {
     config,
@@ -223,8 +242,8 @@ export async function generateArgumentsFromTree(
   unparsedTree: OpenApiGenTree,
   config: any 
 ): Promise<GenerateArguments> {
-  const tree = parseOpenApiGenTree(unparsedTree)
-  return generateTemplateData(target, tree, config)
+  // const tree = parseOpenApiGenTree(unparsedTree)
+  return generateTemplateData(target, unparsedTree, config)
 }
 
 export function loadConfig(configPath: string | undefined): ConfigObject {

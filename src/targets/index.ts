@@ -6,7 +6,7 @@ import {
   TargetFormatMap,
   OpenApiGenSchema
 } from "types"
-import hbs, { TemplateDelegate } from "handlebars"
+import hbs, { TemplateDelegate, HelperOptions } from "handlebars"
 import path from "path"
 
 import EcmaScriptTarget from "./ecmascript"
@@ -14,6 +14,8 @@ import AspNetTarget from "./csharp-aspnet"
 import SwiftTarget from "./swift"
 import RustTarget from "./rust"
 import KotlinTarget from "./kotlin"
+import { SchemaContext } from "visitor";
+import { SchemaObject } from "openapi3-ts";
 
 // Re-export the targets
 export {
@@ -51,6 +53,14 @@ export function resolveTarget(targetName: string): typeof Target | null {
 
 export function handlebarsInstance(tmplPath: string, partialsDir: string): TemplateDelegate {
   const instance = hbs.create()
+
+  instance.registerHelper("indent", function indent(this: any, options: HelperOptions) {
+    const hash = options.hash || { size: 4 }
+    const padding = Array((hash.size || 4) + 1).join(" ")
+    const content = options.fn(this)
+    return content.split("\n").map(s => `${padding}${s}`.trimRight()).join("\n")
+  })
+
   for (const partialFilename of fs.readdirSync(partialsDir)) {
     if (!partialFilename.endsWith(".hbs")) {
       continue
@@ -83,34 +93,35 @@ export function typeResolvers(target: string, additionalResolvers?: TargetTypeMa
   return types
 }
 
-export function resolveSchemaType(target: Target, schema: OpenApiGenSchema | null, name: string) {
+export function resolveSchemaType(target: Target, context: SchemaContext | null, schema: SchemaObject | null, name: string | null) {
   if (schema == null) {
-    return resolveTypeImpl(target, null, null, null, false, false)
+    return resolveTypeImpl(target, null, null, null, null, false)
   }
 
-  return resolveTypeImpl(target, schema, name, schema, false, false)
+  return resolveTypeImpl(target, context, schema, name, schema, false)
 }
 
 export function resolveType(
-  target: Target, 
-  schema: OpenApiGenSchema, 
+  target: Target,
+  context: SchemaContext | null,
+  schema: SchemaObject, 
   name: string, 
-  prop: OpenApiGenSchema
+  prop: SchemaObject
 ) {
   const isOptional = schema.required 
     ? schema.required.indexOf(name) < 0
     : true
-  const isConstant = prop.enum ? prop.enum.length === 1 : false
+  // const isConstant = prop.enum ? prop.enum.length === 1 : false
 
-  return resolveTypeImpl(target, schema, name, prop, isConstant, isOptional)
+  return resolveTypeImpl(target, context, schema, name, prop, isOptional)
 }
 
 function resolveTypeImpl(
-  target: Target, 
-  schema: OpenApiGenSchema | null, 
+  target: Target,
+  context: SchemaContext | null,
+  schema: SchemaObject | null, 
   name: string | null, 
-  prop: OpenApiGenSchema | null, 
-  isConstant: boolean, 
+  propertySchema: SchemaObject | null,
   isOptional: boolean
 ): string {
   
@@ -119,9 +130,9 @@ function resolveTypeImpl(
   let type: string | undefined
   let format: string | undefined
 
-  if (prop) {
-    type = prop.type
-    format = prop.format
+  if (propertySchema) {
+    type = propertySchema.type
+    format = propertySchema.format
   }
   
   const renames = target.config && target.config.renames || {}
@@ -130,49 +141,49 @@ function resolveTypeImpl(
   let candidate
   
   // Format is required here, otherwise additionalProperties loops badly.
-  if (type === "object" && prop != null && prop.additionalProperties) {
+  if (type === "object" && propertySchema != null && propertySchema.additionalProperties) {
+    const additionalPropsSchema = propertySchema.additionalProperties
     const value = resolveTypeImpl(
-      target, 
+      target,
+      context,
       schema, 
       null, 
-      prop.additionalProperties as OpenApiGenSchema, 
-      false, 
+      additionalPropsSchema,
       false
     )
     candidate = types.map
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
-  } else if (prop && prop.key) {
-    if (prop.title && prop.hasModelTitle) {
-      candidate = target.cls(prop.title)
+  } else if (propertySchema && propertySchema.key) {
+    if (propertySchema.title && propertySchema.hasModelTitle) {
+      candidate = target.cls(propertySchema.title)
     } else {
-      candidate = target.cls(prop.key)
+      candidate = target.cls(propertySchema.key)
     }
-  } else if (prop && prop.enum) {
-    const propTitle = prop.title
-
-    if ((prop.enum as any).key) {
-      console.error("Enum got a key")
-    }
+  } else if (propertySchema && propertySchema.enum) {
+    const propTitle = propertySchema.title
 
     if (propTitle) {
       candidate = target.enum(propTitle)
     } else if (name) {
       candidate = target.enum(name)
     } else {
-      throw new Error("Unhandled enum naming for " + JSON.stringify(prop))
+      // TODO: add propertySchema's context as well
+      throw new Error("Unhandled enum naming for " + JSON.stringify(propertySchema))
     }
     
-  } else if (prop && prop.oneOf && name) {
+  } else if (propertySchema && propertySchema.oneOf && name) {
     // Treat this as a very special enum :)
     candidate = target.interface(name) || target.cls(name)
+  } else if (propertySchema && propertySchema.allOf && name) {
+    candidate = target.cls(name)
   } else if (type === "array") {
-    const items = (prop != null ? prop.items : null) as OpenApiGenSchema
+    const items = (propertySchema != null ? propertySchema.items : null) as SchemaObject | null
 
     // TODO: add support for Set<V>
     candidate = types.array.replace(
       "{value}", 
-      resolveTypeImpl(target, schema, name, items, false, false)
+      resolveTypeImpl(target, context, schema, name, items, false)
     )
   } else if (name !== null && ((type === "object" && format == null) || type == null)) {
     candidate = target.cls(name)
@@ -186,7 +197,7 @@ function resolveTypeImpl(
 
       if (!candidateType && !candidateUserType) {
         // tslint:disable-next-line:max-line-length
-        throw new Error(`Could not handle input: ${type} ${format} for ${JSON.stringify(prop)}, ${JSON.stringify(schema)}`)
+        throw new Error(`Could not handle input: ${type} ${format} for ${JSON.stringify(propertySchema)}, ${JSON.stringify(schema)}`)
       }
 
       candidate = candidateUserType[format || "null"] || 
@@ -195,13 +206,13 @@ function resolveTypeImpl(
     } catch (e) {
       console.error(e.stack)
       // tslint:disable-next-line:max-line-length
-      throw new Error(`Could not handle input: ${type} ${format} for ${JSON.stringify(prop)}, ${JSON.stringify(schema)}`)
+      throw new Error(`Could not handle input: ${type} ${format} for ${JSON.stringify(propertySchema)}, ${JSON.stringify(schema)}`)
     }
   }
 
   if (candidate == null) {
     const key = schema != null ? schema.key : null
-    throw new Error(`Got null for schema ${key} for prop ${JSON.stringify(prop)}`)
+    throw new Error(`Got null for schema ${key} for prop ${JSON.stringify(propertySchema)}`)
   }
 
   if (renames[candidate]) {

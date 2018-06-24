@@ -6,10 +6,9 @@ import {
   OAuthFlowObject,
   ReferenceObject,
   SecurityRequirementObject,
-  OperationObject,
-  ServerObject,
-  PathObject
+  ServerObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 export interface OpenApiGenTree extends OpenAPIObject {
   components?: OpenApiGenComponents
@@ -87,8 +86,8 @@ export abstract class Target {
   abstract cls(key: string, isNested?: boolean): string
   abstract enumKey(string: string): string
   abstract oneOfKey(string: string): string
-  abstract modelDoc(schema: OpenApiGenSchema): string | undefined
-  abstract fieldDoc(schema: OpenApiGenSchema): string | undefined
+  abstract modelDoc(schema: SchemaObject): string | undefined
+  abstract fieldDoc(schema: SchemaObject): string | undefined
   abstract variable(basename: string): string
   abstract isHashable(type: string): boolean
   abstract operationId(route: SchemaObject): string
@@ -97,21 +96,21 @@ export abstract class Target {
   abstract url(thing: string): string
   abstract servers(servers: ServerObject[]): TargetServer[]
   abstract generate(args: GenerateArguments): { [filename: string]: string }
-  abstract operationParams(route: OperationObject, bodyName: string): string
+  abstract operationParams(route: Operation, bodyName: string): string
   
-  operationParamsDefaults(route: OperationObject, bodyName: string): string | undefined {
+  operationParamsDefaults(route: Operation, bodyName: string): string | undefined {
     return
   }
   
-  operationArgs(route: OperationObject, bodyName: string): string | undefined {
+  operationArgs(route: Operation, bodyName: string): string | undefined {
     return
   }
 
-  operationKwargs(route: OperationObject, bodyName: string): string | undefined {
+  operationKwargs(route: Operation, bodyName: string): string | undefined {
     return
   }
 
-  requestParams(route: OperationObject, bodyName: string): string | undefined {
+  requestParams(route: Operation, bodyName: string): string | undefined {
     return
   }
 
@@ -123,7 +122,7 @@ export abstract class Target {
     return type
   }
 
-  format(schema: OpenApiGenSchema): string | undefined {
+  format(schema: SchemaObject): string | undefined {
     return
   }
 
@@ -158,11 +157,11 @@ export interface TargetObject {
     name: string;
     values: object;
   }[]
-  operationParams(route: OperationObject, bodyName: string): string
-  operationParamsDefaults?(route: OperationObject, bodyName: string): string
-  operationArgs?(route: OperationObject, bodyName: string): string
-  operationKwargs?(route: OperationObject, bodyName: string): string
-  requestParams?(route: OperationObject, bodyName: string): string
+  operationParams(route: Operation, bodyName: string): string
+  operationParamsDefaults?(route: Operation, bodyName: string): string
+  operationArgs?(route: Operation, bodyName: string): string
+  operationKwargs?(route: Operation, bodyName: string): string
+  requestParams?(route: Operation, bodyName: string): string
   optional?(type: string): string
   types: TargetTypeMap
 
@@ -203,7 +202,7 @@ export interface TargetSecuritySchemes {
 
 export interface TargetModel {
   name: string
-  type: string
+  type?: string | undefined
   isEnum: boolean
   values: {
     key: string;
@@ -297,10 +296,3 @@ export interface GenerateArguments {
 }
 
 export type TargetFieldMap = { [key: string]: TargetField }
-
-export type EndpointIteration = {
-  routePath: string
-  pathObject: PathObject
-  httpMethod: string
-  operationObject: OperationObject
-}
