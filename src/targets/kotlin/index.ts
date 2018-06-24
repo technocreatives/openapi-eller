@@ -113,10 +113,10 @@ export default class KotlinTarget extends Target {
         switch (param.in) {
         case "path":
           // tslint:disable-next-line:max-line-length
-          return `@Path("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          return `@Path("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, null, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
         case "query":
           // tslint:disable-next-line:max-line-length
-          return `@Query("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
+          return `@Query("${param.name}") ${this.variable(param.name)}: ${resolveSchemaType(this, null, (<OpenApiGenSchema>param.schema), param.name)}${param.required ? "" : "? = null"}`
         default:
           // tslint:disable-next-line:max-line-length
           throw new Error(`Unhandled parameter type: ${param.in}, route: ${JSON.stringify(route.parameters)}`)
@@ -131,7 +131,7 @@ export default class KotlinTarget extends Target {
         const content = requestBody.content
         const k = Object.keys(content)[0]
         // tslint:disable-next-line:max-line-length
-        x.push(`@Body body: ${resolveSchemaType(this, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
+        x.push(`@Body body: ${resolveSchemaType(this, null, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
       }
     }
 
