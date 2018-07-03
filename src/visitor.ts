@@ -384,6 +384,7 @@ export interface Operation {
     urlPath: string,
     parameters: ParameterObject[],
     responses: ResponsesObject,
+    requestMediaType?: string | undefined,
     requestBody?: SchemaObject | undefined,
     summary?: string | undefined
     description?: string | undefined
@@ -437,10 +438,23 @@ export class SchemaContext {
       }
 
       if (firstPath[len - 2] === "parameters") {
-        const pathKey = firstPath[len - 4]
-        const httpVerb = firstPath[len - 3]
-        const key = `${pathKey}.${httpVerb}`
-        return `${visitor.pathMap[key].operationId}.${visitor.paramMap[key].name}`
+        let key
+        if (firstPath[len - 4] === "paths") {
+          key = firstPath[len - 3]
+        } else {
+          const pathKey = firstPath[len - 4]
+          const httpVerb = firstPath[len - 3]
+          key = `${pathKey}.${httpVerb}`
+        }
+        const index = firstPath[len - 1] as number
+
+        const operation = visitor.pathMap[key]
+
+        if (operation == null) {
+          return visitor.paramMap[key][index].name
+        }
+
+        return `${operation.operationId}.${visitor.paramMap[key][index].name}`
       }
 
       if (len === 4 && firstPath[0] === "components" && firstPath[1] === "requestBodies") {
@@ -504,7 +518,7 @@ export class GeneratorVisitor extends Visitor {
     private servers: ServerObject[] = []
     schemas: Map<SchemaObject, SchemaContext> = new Map()
 
-    paramMap: { [pathKey: string]: ParameterObject } = {}
+    paramMap: { [pathKey: string]: ParameterObject[] } = {}
 
     visitInfo(info: InfoObject): void {
         this.name = info.title
@@ -513,7 +527,13 @@ export class GeneratorVisitor extends Visitor {
 
     visitParameter(pathKey: string, httpVerb: string | null, parameter: ParameterObject): void {
         const key = httpVerb ? `${pathKey}.${httpVerb}` : pathKey
-        this.paramMap[key] = parameter
+        console.log("PARAM", key, parameter)
+        const params = this.paramMap[key]
+        if (params == null) {
+          this.paramMap[key] = [parameter]
+        } else {
+          params.push(parameter)
+        }
     }
 
     visitSchema(schema: SchemaObject, parentSchema: SchemaObject | null, combiner: Combiner | null): void {
@@ -555,8 +575,10 @@ export class GeneratorVisitor extends Visitor {
       mediaType: string,
       schema: SchemaObject
     ): void {
-      if (this.operations[operationId].requestBody == null) {
-        this.operations[operationId].requestBody = schema
+      const operation = this.operations[operationId]
+      if (operation != null) {
+        operation.requestBody = schema
+        operation.requestMediaType = mediaType
       }
     }
 
@@ -567,28 +589,29 @@ export class GeneratorVisitor extends Visitor {
       tags: string[] | undefined,
       responses: ResponsesObject
     ): void {
-        const httpVerb = this.position() as string
-        const pathKey = this.position(1) as string
-        const key = `${pathKey}.${httpVerb}`
-        const self = this
+      const httpVerb = this.position() as string
+      const pathKey = this.position(1) as string
+      const key = `${pathKey}.${httpVerb}`
+      console.log("LOL", key)
+      const self = this
 
-        const o: Operation = {
-            httpVerb,
-            operationId,
-            urlPath: pathKey,
-            summary,
-            description,
-            tags, 
-            get parameters(): ParameterObject[] {
-                const baseParams = self.paramMap[pathKey] || []
-                const verbParams = self.paramMap[key] || []
-                return baseParams.concat(verbParams)
-            },
-            responses
-        }
+      const o: Operation = {
+        httpVerb,
+        operationId,
+        urlPath: pathKey,
+        summary,
+        description,
+        tags, 
+        get parameters(): ParameterObject[] {
+          const baseParams = self.paramMap[pathKey] || []
+          const verbParams = self.paramMap[key] || []
+          return baseParams.concat(verbParams)
+        },
+        responses
+      }
 
-        this.pathMap[key] = o
-        this.operations[operationId] = o
+      this.pathMap[key] = o
+      this.operations[operationId] = o
     }
 
     visitRequestBodyExample(example: ExampleObject): void {
