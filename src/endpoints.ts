@@ -89,9 +89,9 @@ export function generateEndpoints(
       throw new Error(`Invalid response found for operationId: ${operationObject.operationId}`)
     }
 
-    if (!operationObject.operationId && !operationObject.summary) {
+    if (!operationObject.operationId) {
       // tslint:disable-next-line:max-line-length
-      throw new Error(`No operationId or summary found for route: ${JSON.stringify(operationObject)}`)
+      throw new Error(`No operationId found for route: ${JSON.stringify(operationObject)}`)
     }
 
     const { requestBody } = operationObject
@@ -145,7 +145,7 @@ export function generateEndpoints(
       || operationParams
 
     groups[group].endpoints.push({
-      operationId,
+      operationId: target.operationId(operationObject),
       returnType,
       httpMethod: target.httpMethod(operationObject.httpVerb),
       url: target.pathUrl(operationObject.urlPath),
