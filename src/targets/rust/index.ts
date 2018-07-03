@@ -15,6 +15,7 @@ import {
   OperationObject,
   ServerObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 const reservedWords = fs.readFileSync(`${__dirname}/reserved-words.txt`, "utf8")
@@ -98,7 +99,7 @@ export default class RustTarget extends Target {
     return { "Generated.rs": apiTmpl(args) }
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     return "TODO"
   }
 }

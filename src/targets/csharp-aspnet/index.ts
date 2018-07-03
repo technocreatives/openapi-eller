@@ -6,6 +6,7 @@ import CSharpTarget from "../csharp"
 import { resolveSchemaType } from "targets"
 import { OpenApiGenSchema, GenerateArguments } from "types"
 import { ParameterObject, RequestBodyObject, OperationObject } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -24,7 +25,7 @@ export default class AspNetTarget extends CSharpTarget {
     return `JsonResult<${type}>`
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
     
     if (route.parameters) {

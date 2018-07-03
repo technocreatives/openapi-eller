@@ -94,8 +94,17 @@ export function generateEndpoints(
       throw new Error(`No operationId or summary found for route: ${JSON.stringify(operationObject)}`)
     }
 
+    const { requestBody } = operationObject
+    let requestBodyContext: SchemaContext | undefined
+
+    if (requestBody != null) {
+      requestBodyContext = visitor.schemas.get(requestBody)
+    }
+
     // TODO add req body
-    const anonymousReqBodyName = `${target.cls(operationId)}Body`
+    const anonymousReqBodyName = requestBodyContext != null
+      ? target.cls(requestBodyContext.name(visitor))
+      : `${target.cls(operationId)}Body`
     const anonymousResponseName = responseSchemaContext != null
       ? target.cls(responseSchemaContext.name(visitor))
       : null

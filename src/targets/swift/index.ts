@@ -16,6 +16,7 @@ import {
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -95,7 +96,7 @@ export default class SwiftTarget extends Target {
     return m
   }
 
-  private operationParamsImpl(route: OperationObject,
+  private operationParamsImpl(route: Operation,
       bodyName: string, 
       hasDefaults: boolean = false): string {
     if (!route.parameters) {
@@ -115,15 +116,15 @@ export default class SwiftTarget extends Target {
     return `${x.join(", ")}`
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     return this.operationParamsImpl(route, bodyName)
   }
 
-  operationParamsDefaults(route: OperationObject, bodyName: string): string | undefined {
+  operationParamsDefaults(route: Operation, bodyName: string): string | undefined {
     return this.operationParamsImpl(route, bodyName, true)
   }
 
-  operationArgs(route: OperationObject, bodyName: string): string | undefined {
+  operationArgs(route: Operation, bodyName: string): string | undefined {
     if (!route.parameters) {
       return ""
     }
@@ -134,7 +135,7 @@ export default class SwiftTarget extends Target {
     return `(${x.join(", ")})`
   }
 
-  operationKwargs(route: OperationObject, bodyName: string): string | undefined {
+  operationKwargs(route: Operation, bodyName: string): string | undefined {
     if (!route.parameters) {
       return ""
     }
@@ -145,7 +146,7 @@ export default class SwiftTarget extends Target {
     return `(${x.map(xx => `${xx}: ${xx}`).join(", ")})`
   }
   
-  requestParams(route: OperationObject, bodyName: string): string | undefined {
+  requestParams(route: Operation, bodyName: string): string | undefined {
     // Generate query params
     const indent = "            "
 
