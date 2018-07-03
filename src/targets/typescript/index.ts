@@ -81,11 +81,11 @@ export default class TypeScriptTarget extends Target {
   }
 
   pathUrl(name: string): string {
-    return name.substring(1).replace(/{/g, "${")
+    return name.substring(1) // name.substring(1).replace(/{/g, "${")
   }
 
   url(thing: string): string {
-    const url = thing.replace(/{/g, "${")
+    const url = thing
     if (url.endsWith("/")) {
       return url
     }
@@ -102,7 +102,7 @@ export default class TypeScriptTarget extends Target {
   //   })
   // },
   
-  requestParams(route: SchemaObject): string {
+  requestParams(route: Operation): string {
     let x: string[] = []
 
     if (route.parameters) {
@@ -114,9 +114,10 @@ export default class TypeScriptTarget extends Target {
       })
     }
 
-    if (route.requestBody) {
-      const requestBody = route.requestBody as RequestBodyObject
-      const mainMime = Object.keys(requestBody.content)[0]
+    const { requestBody } = route
+
+    if (requestBody) {
+      const mainMime = route.requestMediaType || "application/json"
 
       x.push(`__reqBody.headers = { "Content-Type": "${mainMime}" }`)
 
