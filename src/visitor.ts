@@ -97,6 +97,7 @@ export abstract class Visitor {
     abstract visitParameter(pathKey: string, httpVerb: string | null, parameter: ParameterObject): void
     abstract visitSchema(schema: SchemaObject, parentSchema: SchemaObject | null, combiner: Combiner | null): void
     abstract visitOperation(operationId: string, summary: string | undefined, description: string | undefined, tags: string[] | undefined, responses: ResponsesObject): void
+    abstract visitOperationRequestBody(operationId: string, mediaType: string, schema: SchemaObject): any
     abstract visitRequestBodyExample(example: ExampleObject): void
     abstract visitResponseExample(example: ExampleObject): void
     abstract visitServer(server: ServerObject): void
@@ -180,7 +181,7 @@ export abstract class Visitor {
       }
     }
 
-    walkRequestBody(requestBody: RequestBodyObject) {
+    walkRequestBody(requestBody: RequestBodyObject, operationId?: string) {
       const { content } = requestBody
 
       for (const mediaTypeKey in content) {
@@ -193,6 +194,10 @@ export abstract class Visitor {
         if (schema != null) {
           this.walk("schema")
           this.walkSchema(this.assertNotRef(schema), undefined, undefined)
+          // Handle the field in Operations
+          if (operationId != null) {
+            this.visitOperationRequestBody(operationId, mediaTypeKey, schema)
+          }
           this.unwalk()
         }
 
@@ -201,6 +206,7 @@ export abstract class Visitor {
           this.visitRequestBodyExample(this.assertNotRef(example))
           this.unwalk()
         }
+
 
         this.unwalk()
       }
@@ -223,7 +229,7 @@ export abstract class Visitor {
         
         if (requestBody != null) {
             this.walk("requestBody")
-            this.walkRequestBody(this.assertNotRef(requestBody))
+            this.walkRequestBody(this.assertNotRef(requestBody), operationId)
             this.unwalk()
         }
 
@@ -378,9 +384,10 @@ export interface Operation {
     urlPath: string,
     parameters: ParameterObject[],
     responses: ResponsesObject,
-    summary: string | undefined
-    description: string | undefined
-    tags: string[] | undefined,
+    requestBody?: SchemaObject | undefined,
+    summary?: string | undefined
+    description?: string | undefined
+    tags?: string[] | undefined,
 }
 
 function isComponentSchema(path: (string | number)[]): boolean {
@@ -407,7 +414,15 @@ export class SchemaContext {
   name(visitor: GeneratorVisitor): string {
     const thingo = () => {
       if (this.schema.type === "array") {
-        return this.children.values().next().value.name(visitor)
+        const items = this.schema.items as SchemaObject
+        if (items != null && !isComplexType(items) && items.type != null) {
+          return items.type 
+        }
+        const child = this.children.values().next()
+        if (child == null || child.value == null) {
+          throw new Error(`${pathAsString(this.path)}: missing child in array schema`)
+        }
+        return child.value.name(visitor)
       }
 
       if (isComponentSchema(this.path)) {
@@ -529,10 +544,20 @@ export class GeneratorVisitor extends Visitor {
         } else {
             const ctx = this.schemas.get(schema) as SchemaContext
 
-            if (ctx == null) {
+            if (ctx == null || ctx.isTransient) {
                 this.schemas.set(schema, new SchemaContext(schema, this.path(), combiner))
             }
         }
+    }
+
+    visitOperationRequestBody(
+      operationId: string,
+      mediaType: string,
+      schema: SchemaObject
+    ): void {
+      if (this.operations[operationId].requestBody == null) {
+        this.operations[operationId].requestBody = schema
+      }
     }
 
     visitOperation(
@@ -553,7 +578,7 @@ export class GeneratorVisitor extends Visitor {
             urlPath: pathKey,
             summary,
             description,
-            tags,
+            tags, 
             get parameters(): ParameterObject[] {
                 const baseParams = self.paramMap[pathKey] || []
                 const verbParams = self.paramMap[key] || []

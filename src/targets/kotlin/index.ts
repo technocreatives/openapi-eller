@@ -16,6 +16,7 @@ import {
   ParameterObject,
   RequestBodyObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = handlebarsInstance(`${__dirname}/api.hbs`, `${__dirname}/partials`)
 const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
@@ -104,7 +105,7 @@ export default class KotlinTarget extends Target {
     return m.toUpperCase()
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
 
     if (route.parameters) {
@@ -119,6 +120,9 @@ export default class KotlinTarget extends Target {
         case "query":
           decorator = "@Query"
           break
+        case "header":
+          decorator = "@Header"
+          break
         default:
           // tslint:disable-next-line:max-line-length
           throw new Error(`Unhandled parameter type: ${param.in}, route: ${JSON.stringify(route.parameters)}`)
@@ -130,15 +134,17 @@ export default class KotlinTarget extends Target {
       })
     }
 
-    if (route.requestBody) {
-      const requestBody = route.requestBody as RequestBodyObject
+    const { requestBody } = route
+    if (requestBody != null) {
+      // const requestBody = route.requestBody as RequestBodyObject
       
-      if (requestBody.content) {
-        const content = requestBody.content
-        const k = Object.keys(content)[0]
-        // tslint:disable-next-line:max-line-length
-        x.push(`@Body body: ${resolveSchemaType(this, null, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
-      }
+      // if (requestBody.content) {
+      //   const content = requestBody.content
+      //   const k = Object.keys(content)[0]
+      //   // tslint:disable-next-line:max-line-length
+      //   x.push(`@Body body: ${resolveSchemaType(this, null, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
+      // }
+      x.push(`@Body body: ${resolveSchemaType(this, null, requestBody, bodyName)}`)
     }
 
     return `(${x.join(",\n        ")})`

@@ -16,6 +16,7 @@ import {
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 const titleCamel = (x: string) => _.upperFirst(_.camelCase(x))
@@ -106,7 +107,7 @@ export default class CSharpTarget extends Target {
     return `Http${_.upperFirst(m)}`
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }): string {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     if (!route || !route.parameters) {
       throw new Error("Missing parameter information")
     }

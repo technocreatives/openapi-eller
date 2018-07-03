@@ -18,6 +18,7 @@ import {
   ServerObject,
   ReferenceObject
 } from "openapi3-ts"
+import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
@@ -166,7 +167,7 @@ export default class EcmaScriptTarget extends Target {
     return typeof (p as any).$ref === "undefined"
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }) {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }) {
     let x: string[] = []
     
     if (route.parameters) {
