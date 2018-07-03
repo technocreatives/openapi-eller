@@ -1,0 +1,28 @@
+integer:
+  null: number
+  int64: number
+  int32: number
+  unix-time: number
+string:
+  null: string
+  date-time: Date
+  date: Date
+  byte: string
+  binary: string
+  password: string
+  uri: URL
+  url: URL
+number:
+  null: number
+  float: number
+  double: number
+boolean:
+  null: Boolean
+array: "{value}[]"
+map: "{ [key: {key}]: {value} }"
+# set: "Set<{value}>"
+set: "{value}[]"
+null: void
+object:
+  any: any
+  null: any

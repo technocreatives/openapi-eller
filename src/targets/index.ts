@@ -16,6 +16,7 @@ import RustTarget from "./rust"
 import KotlinTarget from "./kotlin"
 import { SchemaContext } from "visitor";
 import { SchemaObject } from "openapi3-ts";
+import TypeScriptTarget from "./typescript";
 
 // Re-export the targets
 export {
@@ -27,7 +28,7 @@ export {
 }
 
 export const knownTargets = [
-  "csharp-aspnet", "ecmascript", "kotlin", "rust", "swift"
+  "csharp-aspnet", "ecmascript", "kotlin", "rust", "swift", "typescript"
 ]
 
 export function resolveTarget(targetName: string): typeof Target | null {
@@ -46,6 +47,9 @@ export function resolveTarget(targetName: string): typeof Target | null {
     case "js":
     case "es":
       return EcmaScriptTarget
+    case "ts":
+    case "typescript":
+      return TypeScriptTarget
     default:
       return null
   }

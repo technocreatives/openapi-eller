@@ -1,0 +1,298 @@
+/* tslint:disable:no-unused-variable */
+
+import "reflect-metadata"
+import fetch from "isomorphic-fetch"
+
+interface VerbConfig {
+    verb: string
+    path: string
+}
+
+const neofitSymbol = Symbol("neofit")
+const baseUrlSymbol = Symbol("baseUrl")
+const Symbols = {
+    request: Symbol("request"),
+    response: Symbol("response"),
+    url: Symbol("URL"),
+    path: Symbol("Path"),
+    body: Symbol("Body"),
+    query: Symbol("Query"),
+    header: Symbol("Header")
+}
+
+function httpVerb(verb: String, urlPath: string) {
+    return Reflect.metadata(Symbols.url, {
+        verb,
+        path: urlPath 
+    } as VerbConfig)
+}
+
+const GET = httpVerb.bind(httpVerb, "GET")
+const POST = httpVerb.bind(httpVerb, "POST")
+const PUT = httpVerb.bind(httpVerb, "PUT")
+const DELETE = httpVerb.bind(httpVerb, "DELETE")
+const PATCH = httpVerb.bind(httpVerb, "PATCH")
+const OPTIONS = httpVerb.bind(httpVerb, "OPTIONS")
+const HEAD = httpVerb.bind(httpVerb, "HEAD")
+const TRACE = httpVerb.bind(httpVerb, "TRACE")
+
+enum BodyType {
+    JSON = "application/json",
+    Text = "text/plain",
+    FormData = "multipart/form-data",
+    Blob = "application/octet-stream"
+}
+
+function param(sym: Symbol, item: string) {
+    function innerParam(target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        const params: { [key: string]: number } = Reflect.getOwnMetadata(sym, target, propertyKey) || {}
+        params[item] = parameterIndex
+        Reflect.defineMetadata(sym, params, target, propertyKey)
+    }
+
+    return innerParam
+}
+
+const Path = param.bind(param, Symbols.path)
+const Query = param.bind(param, Symbols.query)
+const Header = param.bind(param, Symbols.header)
+
+function Body(type?: BodyType) {
+    function innerBody(target: Object, propertyKey: string | symbol, parameterIndex: number) {
+        if (Reflect.getOwnMetadata(Symbols.body, target, propertyKey) != null) {
+            throw new Error(`@Body already defined for key: ${propertyKey.toString()}`)
+        }
+
+        const value = { index: parameterIndex, type: type || BodyType.JSON }
+
+        Reflect.defineMetadata(Symbols.body, value, target, propertyKey)
+    }
+    
+    return innerBody
+}
+
+function resolveUrl(service: Neofit, key: string, args: IArguments): URL {
+    let { path } = Reflect.getMetadata(Symbols.url, service, key)
+    const fields = Reflect.getMetadata(Symbols.path, service, key) || {}
+    const queryParams = Reflect.getMetadata(Symbols.query, service, key) || {}
+
+    for (const key in fields) {
+        const index = fields[key]
+        const value = args[index]
+        
+        path = path.replace(`{${key}}`, value)
+    }
+
+    const absoluteUrl = new URL(path, service[baseUrlSymbol])
+
+    for (const qs in queryParams) {
+        absoluteUrl.searchParams.set(qs, queryParams[qs])
+    }
+
+    return absoluteUrl
+}
+
+function createLowerKeyedObject(): { [key: string]: any } {
+    return new Proxy({}, {
+        set(target: any, prop, value) {
+            const key = prop.toString().toLowerCase()
+            target[key] = value
+            return true
+        },
+        get(target: any, prop) {
+            const key = prop.toString().toLowerCase()
+            return target[key]
+        }
+    })
+}
+
+function resolveHeaders(service: Neofit, key: string, args: IArguments, requestBodyType: BodyType): { [key: string]: string } {
+    const fields = Reflect.getMetadata(Symbols.header, service, key) || {}
+    const headers = createLowerKeyedObject()
+
+    for (const key in fields) {
+        const index = fields[key]
+        headers[key] = args[index]
+    }
+
+    headers["content-type"] = requestBodyType
+
+    return Object.assign({}, headers)
+}
+
+function resolveBody(service: Neofit, key: string, args: IArguments) {
+    const index = Reflect.getMetadata(Symbols.body, service, key)
+    
+    if (index != null) {
+        return args[index]
+    }
+}
+
+function resolveVerb(service: Neofit, key: string): string {
+    return Reflect.getMetadata(Symbols.url, service, key).verb
+}
+
+function resolveRequestBodyType(service: Neofit, key: string): BodyType {
+    return Reflect.getMetadata(Symbols.request, service, key) || BodyType.JSON
+}
+
+function resolveResponseBodyType(service: Neofit, key: string): BodyType {
+    return Reflect.getMetadata(Symbols.response, service, key) || BodyType.JSON
+}
+
+{{!-- 
+function inspect(service: Neofit) {
+    console.log(`Base URL: ${service[baseUrlSymbol]}`)
+
+    const proto = Object.getPrototypeOf(service)
+    const fields = Object.getOwnPropertyNames(proto)
+
+    for (const k of fields) {
+        const meta = Reflect.getMetadata(Symbols.url, service, k)
+        if (meta == null) {
+            continue
+        }
+
+        const { verb, path } = meta
+        const reqBodyType = resolveRequestBodyType(service, k)
+        const resBodyType = resolveResponseBodyType(service, k)
+        console.log(`${verb} ${path} -> ${reqBodyType}, <- ${resBodyType}`)
+
+        const queryParams = Reflect.getMetadata(Symbols.query, service, k)
+        if (queryParams) {
+            console.log(`  Query: ${Object.keys(queryParams).join(", ")}`)
+        }
+    }
+}
+--}}
+
+abstract class Neofit {
+    [baseUrlSymbol]: URL
+
+    constructor(baseUrl: URL) {
+        this[baseUrlSymbol] = baseUrl
+    }
+
+    private [neofitSymbol]<T>(key: string, args: IArguments): Promise<T> {
+        const absoluteUrl = resolveUrl(this, key, args)
+        const method = resolveVerb(this, key)
+        const body = resolveBody(this, key, args)
+
+        const requestBodyType = resolveRequestBodyType(this, key)
+        const responseBodyType = resolveResponseBodyType(this, key)
+        const headers = resolveHeaders(this, key, args, requestBodyType)
+
+        const request = fetch(absoluteUrl.toString(), {
+            method,
+            headers,
+            body
+        })
+
+        return request.then(response => {
+            switch (responseBodyType) {
+            case BodyType.JSON:
+                return response.json()
+            case BodyType.Text:
+                return response.text()
+            case BodyType.FormData:
+                return response.formData()
+            case BodyType.Blob:
+                return response.blob()
+            }
+        })
+    }
+}
+
+{{#if servers}}
+export const {{{name}}}Server = {
+{{#each servers}}
+{{#if variables}}
+  {{{description}}}({{{variables}}}) {
+    return new URL("{{{url}}}"
+{{#each replacements}}
+      .replace("{{{key}}}", {{{value}}})
+{{/each}}
+    )
+    }{{#unless @last}},{{/unless}}
+{{else}}
+  {{{description}}}: new URL("{{{url}}}"){{#unless @last}},{{/unless}}
+{{/if}}
+{{/each}}
+}
+{{/if}}
+
+export class {{{name}}}Service extends Neofit {
+        {{!-- fun create(baseUrl: String, vararg interceptors: Interceptor): {{{name}}}Service =
+            Retrofit.Builder()
+                    .client(interceptors.fold(OkHttpClient.Builder(), { acc, cur -> acc.addInterceptor(cur) }).build())
+                    .baseUrl(baseUrl)
+                    .addConverterFactory(GsonConverterFactory.create(createGson()))
+                    .addCallAdapterFactory(RxJava2CallAdapterFactory.createAsync())
+                    .build()
+                    .create({{{name}}}Service::class.java)
+    } --}}
+{{#each groups}}
+{{#if name}}
+    // Section: {{name}}
+{{/if}}
+{{#each endpoints}}
+
+    @{{{httpMethod}}}("{{{url}}}")
+    {{{operationId}}}{{{operationParams}}}: {{{returnType}}} {
+        return this[neofitSymbol]("{{{operationId}}}", arguments)
+    }
+{{/each}}
+{{/each}}
+}
+
+
+{{#each models}}
+{{#if isEnum}}
+export enum {{{name}}} {
+{{#each values}}
+    {{{key}}} = "{{{value}}}"{{#unless @last}},{{else}}{{/unless}}
+{{/each}}
+}
+{{else}}
+export class {{{name}}} {
+{{#each fields}}
+{{#unless isNameEqualToKey}}
+    @JsonProperty("{{{key}}}")
+{{/unless}}
+{{#if format}}
+    @Format("{{{format}}}")
+{{/if}}
+{{#if isEnum}}
+{{#if isOptional}}
+    {{{name}}}: string | undefined // {{{type}}}
+{{else}}
+    {{{name}}}: string // {{{type}}}
+{{/if}}
+{{else}}
+    {{{name}}}: {{{type}}}
+{{/if}}
+{{/each}}
+{{#each enums}}
+
+{{#if isEnum}}
+    static {{{name}}} = new class {{{name}}} {
+{{#each values}}
+        static {{{key}}} = "{{{value}}}"
+{{/each}}
+    }
+{{/if}}
+{{!-- {{#if isOneOf}}
+    sealed class {{{name}}} {
+{{#each values}}
+        data class {{{key}}}(val value: {{{value}}}): {{{../name}}}()
+{{/each}}
+    }
+{{/if}} --}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+}
+{{/if}}
+
+{{/each}}

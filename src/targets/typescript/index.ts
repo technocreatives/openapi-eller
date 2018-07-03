@@ -20,6 +20,9 @@ import {
   ReferenceObject
 } from "openapi3-ts"
 
+import { resolveSchemaType } from "targets"
+import { Operation } from "visitor";
+
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
 export default class TypeScriptTarget extends Target {
@@ -38,7 +41,7 @@ export default class TypeScriptTarget extends Target {
   }
 
   optional(name: string): string {
-    return name
+    return `${name} | undefined`
   }
 
   fieldDoc(doc: OpenApiGenSchema): string {
@@ -156,29 +159,45 @@ export default class TypeScriptTarget extends Target {
     return typeof (p as any).$ref === "undefined"
   }
 
-  operationParams(route: OperationObject, bodyName: string, paramNames: { [key: string]: string }) {
+  operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
-    
+
     if (route.parameters) {
-      x = route.parameters
-        .filter(this.isParameterObject)
-        .map((p) => `${_.camelCase(p.name)}`)
+      x = route.parameters.map((p) => {
+        const param = p as ParameterObject
+        let decorator
+
+        switch (param.in) {
+        case "path":
+          decorator = "@Path"
+          break
+        case "query":
+          decorator = "@Query"
+          break
+        case "header":
+          decorator = "@Header"
+          break
+        default:
+          // tslint:disable-next-line:max-line-length
+          throw new Error(`Unhandled parameter type: ${param.in}, route: ${JSON.stringify(route.parameters)}`)
+        }
+
+        const pn = paramNames[param.name]
+        // tslint:disable-next-line:max-line-length
+        return `${decorator}("${param.name}") ${this.variable(pn)}${param.required ? "" : "?"}: ${resolveSchemaType(this, null, param.schema as SchemaObject, pn)}`
+      })
     }
 
-    if (route.requestBody) {
-      // const k = Object.keys(route.requestBody.content)
-      x.push(`body`)
+    const { requestBody } = route
+    if (requestBody != null) {
+      x.push(`@Body body: ${resolveSchemaType(this, null, requestBody, bodyName)}`)
     }
 
-    if (x.length === 0) {
-      return "()"
-    }
-    
-    if (x.length === 1) {
-      return `(${x[0]})`
-    }
+    return `(${x.join(",\n        ")})`
+  }
 
-    return `({ ${x.join(", ")} })`
+  returnType(type: string): string {
+    return `Promise<${type}>`
   }
 
   servers(servers: ServerObject[]): TargetServer[] {
@@ -198,6 +217,7 @@ export default class TypeScriptTarget extends Target {
   }
 
   generate(args: GenerateArguments): { [filename: string]: string } {
-    return { "Generated.js": apiTmpl(args) }
+    return { "Generated.ts": apiTmpl(args) }
   }
 }
+
