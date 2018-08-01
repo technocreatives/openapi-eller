@@ -12,7 +12,7 @@ import {
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
-import { GeneratorVisitor, SchemaContext, isComplexType } from "visitor";
+import { SchemaContext, isComplexType } from "visitor";
 
 function findResponseSchema(responses: ResponsesObject): SchemaObject | undefined {
   const successResponse: ResponseObject = find(
@@ -39,10 +39,9 @@ function findResponseSchema(responses: ResponsesObject): SchemaObject | undefine
 }
 
 export function generateEndpoints(
-  visitor: GeneratorVisitor,
-  target: Target, 
-  config: ConfigObject
+  target: Target
 ): TargetEndpointsGroup[] | null {
+  const { visitor, config } = target
   const isGroupingEnabled = config.useGroups || false
   const groups: {[groupName: string]: TargetEndpointsGroup} = {}
   
@@ -90,7 +89,6 @@ export function generateEndpoints(
     }
 
     if (!operationObject.operationId) {
-      // tslint:disable-next-line:max-line-length
       throw new Error(`No operationId found for route: ${JSON.stringify(operationObject)}`)
     }
 
@@ -109,11 +107,11 @@ export function generateEndpoints(
       ? target.cls(responseSchemaContext.name(visitor))
       : null
 
-    if (responseSchema && responseSchema.type === "array") {
-      console.log(responseSchema)
-    }
+    // if (responseSchema && responseSchema.type === "array") {
+    //   console.log(responseSchema)
+    // }
 
-    const schemaType = resolveSchemaType(target, null, responseSchema || null, anonymousResponseName)
+    const schemaType = resolveSchemaType(target, responseSchemaContext || null, responseSchema || null, anonymousResponseName)
     const returnType = target.returnType(schemaType)
 
     if (!groups[group]) {

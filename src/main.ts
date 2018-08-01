@@ -5,7 +5,7 @@ import path from "path"
 import program from "commander"
 import { sync as mkdirpSync } from "mkdirp"
 
-import { loadConfig, loadTarget, generateArgumentsFromPath } from "./index"
+import { loadConfig, loadTarget, generateArgumentsFromTarget } from "./index"
 import { knownTargets } from "./targets"
 
 async function generateFromPath(
@@ -18,8 +18,8 @@ async function generateFromPath(
   const absOutputPath = path.resolve(outputPath)
 
   const config = loadConfig(configPath)
-  const target = loadTarget(targetName, config)
-  const args = await generateArgumentsFromPath(target, yamlPath, config)
+  const target = loadTarget(targetName, yamlPath, config)
+  const args = await generateArgumentsFromTarget(target)
 
   if (isDebug) {
     fs.writeFileSync(path.join(absOutputPath, "debug.json"),
@@ -48,7 +48,7 @@ program
     generateFromPath(targetName, yamlPath, configPath, program.output, program.debug)
       .then(() => process.exit(0))
       .catch((err: Error) => {
-        console.error(program.debug ? err.stack : err.message)
+        console.error(program.debug ? err.stack : `Error: ${err.message}`)
         process.exit(1)
       })
   })

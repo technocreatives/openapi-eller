@@ -99,36 +99,39 @@ export function typeResolvers(target: string, additionalResolvers?: TargetTypeMa
 
 export function resolveSchemaType(target: Target, context: SchemaContext | null, schema: SchemaObject | null, name: string | null) {
   if (schema == null) {
-    return resolveTypeImpl(target, null, null, null, null, false)
+    return resolveTypeImpl(target, null, null, null, null, null, false)
   }
 
-  return resolveTypeImpl(target, context, schema, name, schema, false)
+  return resolveTypeImpl(target, context, schema, name, name, schema, false)
 }
 
 export function resolveType(
   target: Target,
   context: SchemaContext | null,
-  schema: SchemaObject, 
+  schema: SchemaObject,
+  key: string,
   name: string, 
   prop: SchemaObject
 ) {
   const isOptional = schema.required 
-    ? schema.required.indexOf(name) < 0
+    ? schema.required.indexOf(key) < 0
     : true
+  // console.log(name, schema.required, isOptional)
   // const isConstant = prop.enum ? prop.enum.length === 1 : false
 
-  return resolveTypeImpl(target, context, schema, name, prop, isOptional)
+  return resolveTypeImpl(target, context, schema, key, name, prop, isOptional)
 }
 
 function resolveTypeImpl(
   target: Target,
   context: SchemaContext | null,
   schema: SchemaObject | null, 
+  key: string | null, 
   name: string | null, 
   propertySchema: SchemaObject | null,
   isOptional: boolean
 ): string {
-  
+  const { visitor, config } = target
   const { types, optional } = target
 
   let type: string | undefined
@@ -139,22 +142,25 @@ function resolveTypeImpl(
     format = propertySchema.format
   }
   
-  const renames = target.config && target.config.renames || {}
-  const userTypes = target.config && target.config.types || {}
+  const renames = config && config.renames || {}
+  const userTypes = config && config.types || {}
   
   let candidate
   
   // Format is required here, otherwise additionalProperties loops badly.
   if (type === "object" && propertySchema != null && propertySchema.additionalProperties) {
     const additionalPropsSchema = propertySchema.additionalProperties
+    const childCtx = visitor.schemas.get(additionalPropsSchema) || null
     const value = resolveTypeImpl(
       target,
-      context,
+      childCtx,
       schema, 
-      null, 
+      null,
+      childCtx != null && !childCtx.isTransient ? childCtx.name(target.visitor) : null,
       additionalPropsSchema,
       false
     )
+    
     candidate = types.map
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
@@ -181,13 +187,17 @@ function resolveTypeImpl(
     candidate = target.interface(name) || target.cls(name)
   } else if (propertySchema && propertySchema.allOf && name) {
     candidate = target.cls(name)
-  } else if (type === "array") {
-    const items = (propertySchema != null ? propertySchema.items : null) as SchemaObject | null
+  } else if (type === "array" && propertySchema != null) {
+    const items = propertySchema.items as SchemaObject
+
+    const propertySchemaCtx = visitor.schemas.get(propertySchema)
+    console.log(propertySchemaCtx != null && propertySchemaCtx.toString(visitor))
+    const itemsName = propertySchemaCtx != null && !propertySchemaCtx.isTransient ? propertySchemaCtx.name(visitor) : name
 
     // TODO: add support for Set<V>
     candidate = types.array.replace(
       "{value}", 
-      resolveTypeImpl(target, context, schema, name, items, false)
+      resolveTypeImpl(target, context, schema, itemsName, itemsName, items, false)
     )
   } else if (name !== null && ((type === "object" && format == null) || type == null)) {
     candidate = target.cls(name)

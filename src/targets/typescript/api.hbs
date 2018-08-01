@@ -169,7 +169,7 @@ function inspect(service: Neofit) {
 abstract class Neofit {
     [baseUrlSymbol]: URL
 
-    constructor(baseUrl: URL) {
+    constructor(baseUrl: URL, interceptors: ) {
         this[baseUrlSymbol] = baseUrl
     }
 
@@ -202,6 +202,71 @@ abstract class Neofit {
         })
     }
 }
+
+{{#each security}}
+{{#if isApiKey}}
+export function {{name}}ApiKeyInterceptor(apiKey: string) {
+  return function interceptor(url, req) {
+{{#if inHeader}}
+    if (!req.headers) {
+      req.headers = {}
+    }
+
+    req.headers["{{{key}}}"] = apiKey
+{{/if}}
+{{#if inQuery}}
+    url.searchParams.set("{{{key}}}", apiKey)
+{{/if}}
+    return req
+  }
+}
+{{/if}}
+{{#if isHttp}}
+{{#if isBasic}}
+export function {{name}}BasicAuthInterceptor(username: string, password: string) {
+  return function interceptor(url, req) {
+    const base64Data = btoa(`${username}:${password}`)
+    const header = `Basic ${base64Data}`
+{{/if}}
+{{#if isBearer}}
+export function {{name}}BearerInterceptor(bearerToken: string) {
+  return function interceptor(url, req) {
+    const header = `Bearer ${bearerToken}`
+
+{{/if}}
+
+    if (!req.headers) {
+      req.headers = {}
+    }
+
+    req.headers.Authorization = header
+    return req
+  }
+}
+{{/if}}
+{{/each}}
+
+{{#each security}}
+{{#if isApiKey}}
+class {{{../name}}}{{{name}}}Interceptor(private val token: String): Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val req = chain.request()
+        val newReq = req.newBuilder()
+{{#if inHeader}}
+            .header("{{{key}}}", token)
+{{/if}}
+{{#if inQuery}}
+            .url(req.url().newBuilder().addQueryParameter("{{{key}}}", token).build())
+{{/if}}
+            .build()
+        return chain.proceed(newReq)
+    }
+}
+{{/if}}
+{{#if isOAuth2}}
+// OAuth interceptor not generated.
+{{/if}}
+{{/each}}
 
 {{#if servers}}
 export const {{{name}}}Server = {

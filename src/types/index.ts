@@ -8,7 +8,7 @@ import {
   SecurityRequirementObject,
   ServerObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation, GeneratorVisitor } from "visitor";
 
 export interface OpenApiGenTree extends OpenAPIObject {
   components?: OpenApiGenComponents
@@ -75,9 +75,11 @@ export interface ConfigObject {
 }
 
 export abstract class Target {
+  visitor: GeneratorVisitor
   config: ConfigObject
 
-  constructor(config: ConfigObject) {
+  constructor(visitor: GeneratorVisitor, config: ConfigObject) {
+    this.visitor = visitor
     this.config = config
   }
 

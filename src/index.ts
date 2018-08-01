@@ -1,10 +1,7 @@
-import jref from "json-ref-lite"
 import yaml from "js-yaml"
 import fs from "fs"
 import _ from "lodash"
-import { 
-  OpenApiGenTree, 
-  OpenApiGenSchema,
+import {
   SecuritySchemeType, 
   Target, 
   ParameterLocation, 
@@ -14,121 +11,18 @@ import {
   GenerateArguments
 } from "./types"
 import {
-  SchemaObject,
-  ParameterObject
+  ServerObject
 } from "openapi3-ts"
 
-// import { generateModels } from "./models"
 import { generateEndpoints } from "./endpoints"
 import { resolveTarget } from "./targets"
 import { GeneratorVisitor, ModelGenerator } from "visitor";
 // import logger from "winston"
 
-// function parseOpenApiGenTree(tree: OpenApiGenTree) {
-//   if (!tree.servers) {
-//     throw new Error(`Unexpected structure: Servers missing`)
-//   }
-
-//   // Resolve $refs
-//   tree = jref.resolve(tree) as OpenApiGenTree
-
-//   // Merge all "allOf"
-//   if (tree.components && tree.components.schemas) {
-//     Object.keys(tree.components.schemas).forEach((k) => {
-//       if (!tree || !tree.components || !tree.components.schemas) {
-//         return
-//       }
-//       let schema = tree.components.schemas[k]
-
-//       if (schema.allOf) {
-//         console.log(schema)
-//         const newSchema = Object.assign({}, ...schema.allOf)
-//         tree.components.schemas[k] = newSchema
-//         schema = newSchema
-//       }
-
-//       if (schema.properties) {
-//         Object.keys(schema.properties).forEach((k) => {
-//           if (!schema.properties) {
-//             return
-//           }
-//           const prop = schema.properties[k] as SchemaObject
-
-//           if (prop.allOf) {
-//             schema.properties[k] = Object.assign({}, ...prop.allOf)
-//           }
-//         })
-//       }
-//     })
-//   }
-
-//   // Add keys to schemas
-//   if (tree && tree.components) {
-//     const { schemas, parameters } = tree.components
-
-//     if (schemas != null) {
-//       for (const k in schemas) {
-//         const schema = schemas[k]
-
-//         if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
-//           continue
-//         }
-
-//         schemas[k].key = k
-
-//         // Ensure titles have known origins
-//         if (schemas[k].title) {
-//           schemas[k].hasModelTitle = true
-//         }
-//       }
-//     }
-
-//     if (parameters != null) {
-//       for (const k in parameters) {
-//         const schema = parameters[k].schema as OpenApiGenSchema | undefined
-
-//         if (schema != null) {
-//           if (schema.type !== "array" && schema.type !== "object" && schema.enum == null) {
-//             continue
-//           }
-
-//           (schema as OpenApiGenSchema).key = k
-//           // logger.warn(`parameter keyed: ${k}`)
-//         }
-//       }
-//     }
-//   }
-
-//   // Add parameters to methods
-//   for (const { operationObject, pathObject } of endpointIterator(tree)) {
-//     const params = pathObject.parameters || []
-//     operationObject.parameters = params.concat(operationObject.parameters || [])
-    
-//     for (const defn of operationObject.parameters as ParameterObject[]) {
-//       const param = defn as ParameterObject
-
-//       if (param.schema != null) {
-//         const schema = param.schema as OpenApiGenSchema
-
-//         if (schema.type === "object" || schema.type === "array" || schema.enum != null) {
-//           if (operationObject.operationId == null) {
-//             throw new Error("No operationId found for " + JSON.stringify(operationObject))
-//           }
-          
-//           schema.key = `${operationObject.operationId}_${param.name}`
-//           // logger.warn(`parameter keyed: ${operationObject.key}`)
-//         }
-//       }
-//     }
-//   }
-
-//   return tree
-// }
-
 function generateSecuritySchemes(
-  tree: OpenApiGenTree, 
   target: Target
 ): {}[] {
+  const { tree } = target.visitor
   const security: TargetSecuritySchemes[] = []
 
   if (tree.components == null || tree.components.securitySchemes == null) {
@@ -204,46 +98,31 @@ function generateSecuritySchemes(
   return security
 }
 
-async function generateTemplateData(
-  target: Target,
-  tree: OpenApiGenTree,
-  config: any
+export async function generateArgumentsFromTarget(
+  target: Target
 ): Promise<GenerateArguments> {
-  if (tree.openapi == null || !tree.openapi.startsWith("3.")) {
-    throw new Error("Did not find supported version or `openapi` field.")
-  }
-
-  const visitor = new GeneratorVisitor(tree)
+  const { visitor, config } = target
   visitor.start()
 
-  visitor.schemas.forEach((ctx) => {
-    console.log(ctx.toString(visitor))
-  })
+  // visitor.schemas.forEach((ctx) => {
+  //   console.log(ctx.toString(visitor))
+  // })
 
   const modelGenerator = new ModelGenerator(target, visitor)
 
   const models = modelGenerator.generate() //generateModels(tree, target)
-  const groups = generateEndpoints(visitor, target, config)
+  const groups = generateEndpoints(target)
 
   const data = {
     config,
     groups,
     models,
-    security: generateSecuritySchemes(tree, target),
-    servers: target.servers(tree.servers),
-    name: target.cls(tree.info.title)
+    security: generateSecuritySchemes(target),
+    servers: target.servers(visitor.tree.servers as ServerObject[]),
+    name: target.cls(visitor.tree.info.title)
   }
 
   return data
-}
-
-export async function generateArgumentsFromTree(
-  target: Target,
-  unparsedTree: OpenApiGenTree,
-  config: any 
-): Promise<GenerateArguments> {
-  // const tree = parseOpenApiGenTree(unparsedTree)
-  return generateTemplateData(target, unparsedTree, config)
 }
 
 export function loadConfig(configPath: string | undefined): ConfigObject {
@@ -262,26 +141,12 @@ export function loadConfig(configPath: string | undefined): ConfigObject {
   return config
 }
 
-export function loadTarget(targetName: string, config: ConfigObject): Target {
-  const targetClass = resolveTarget(targetName) as (new (config: ConfigObject) => Target) | null
+export function loadTarget(targetName: string, yamlPath: string, config: ConfigObject): Target {
+  const unparsedTree = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8"))
+  const visitor = new GeneratorVisitor(unparsedTree)
+  const targetClass = resolveTarget(targetName) as (new (visitor: GeneratorVisitor, config: ConfigObject) => Target) | null
   if (targetClass == null) {
     throw new Error(`No target found for name: ${targetName}`)
   }
-  return new targetClass(config)
-}
-
-export async function generateArgumentsFromPath(
-  target: Target,
-  yamlPath: string, 
-  config: any
-): Promise<GenerateArguments> {
-  if (!fs.statSync(yamlPath)) {
-    throw new Error("YAML file does not exist")
-  }
-
-  // const target = loadTarget(targetName, config)
-  const unparsedTree = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8")) as OpenApiGenTree
-  const generateArgs = await generateArgumentsFromTree(target, unparsedTree, config)
-
-  return generateArgs
+  return new targetClass(visitor, config)
 }

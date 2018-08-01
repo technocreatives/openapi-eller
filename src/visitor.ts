@@ -101,13 +101,40 @@ export abstract class Visitor {
     abstract visitRequestBodyExample(example: ExampleObject): void
     abstract visitResponseExample(example: ExampleObject): void
     abstract visitServer(server: ServerObject): void
-    
-    walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined, combiner: Combiner | undefined) {
-      const { anyOf, oneOf, allOf, properties, items } = schema
 
-      if (schema.type === "array") {
-        console.error(schema)
+    walkComponentSchema(schema: SchemaObject) {
+      // Do all top-level first so properties can resolve correctly.
+      const { anyOf, oneOf, allOf } = schema
+      const iterWalk = (c: Combiner, iter: SchemaObject[]) => {
+        this.visitSchema(schema, null, c)
+        this.walk(c)
+        let i = 0
+        for (const s of iter) {
+          this.walk(i)
+          this.walkSchema(s, schema, c)
+          i++
+          this.unwalk()
+        }
+        this.unwalk()
       }
+      
+      if (allOf != null) {
+        iterWalk("allOf", allOf)
+      } else if (oneOf != null) {
+        iterWalk("oneOf", oneOf)
+      } else if (anyOf != null) {
+        iterWalk("anyOf", anyOf)
+      } else {
+        this.visitSchema(schema, null, null)
+      }
+    }
+
+    walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined, combiner: Combiner | undefined) {
+      const { anyOf, oneOf, allOf, properties, items, additionalProperties } = schema
+
+      // if (schema.type === "array") {
+      //   console.error(schema)
+      // }
 
       const iterWalk = (c: Combiner, iter: SchemaObject[]) => {
         this.visitSchema(schema, parentSchema || null, c)
@@ -152,11 +179,17 @@ export abstract class Visitor {
         this.unwalk()
       }
 
+      if (additionalProperties != null) {
+        this.walk("additionalProperties")
+        this.walkSchema(this.assertNotRef(additionalProperties), schema, undefined)
+        this.unwalk()
+      }
+      
       this.walkedSet.add(schema)
     }
 
     walkResponse(response: ResponseObject) {
-      console.log(response)
+      // console.log(response)
       const { content } = response
 
       if (content != null) {
@@ -312,6 +345,7 @@ export abstract class Visitor {
         // callbacks, securitySchemes
         const { schemas, requestBodies, responses } = components
         
+        iterWalk("schema", this.walkComponentSchema.bind(this), schemas)
         iterWalk("schema", this.walkSchema.bind(this), schemas)
         iterWalk("requestBodies", this.walkRequestBody.bind(this), requestBodies)
         iterWalk("responses", this.walkResponse.bind(this), responses)
@@ -329,7 +363,7 @@ export abstract class Visitor {
         this.unwalk()
     }
 
-    private tree: OpenAPIObject
+    readonly tree: OpenAPIObject
 
     constructor(input: any) {
         const tree = jref.resolve(input) as OpenAPIObject
@@ -356,6 +390,7 @@ export abstract class Visitor {
         this.walkedSet = new WeakSet()
 
         const { info, paths, components, servers } = this.tree
+
         this.walk("info")
         this.visitInfo(info)
         this.unwalk()
@@ -415,6 +450,7 @@ export class SchemaContext {
   name(visitor: GeneratorVisitor): string {
     const thingo = () => {
       if (this.schema.type === "array") {
+        console.log(pathAsString(this.path))
         const items = this.schema.items as SchemaObject
         if (items != null && !isComplexType(items) && items.type != null) {
           return items.type 
@@ -527,7 +563,7 @@ export class GeneratorVisitor extends Visitor {
 
     visitParameter(pathKey: string, httpVerb: string | null, parameter: ParameterObject): void {
         const key = httpVerb ? `${pathKey}.${httpVerb}` : pathKey
-        console.log("PARAM", key, parameter)
+        // console.log("PARAM", key, parameter)
         const params = this.paramMap[key]
         if (params == null) {
           this.paramMap[key] = [parameter]
@@ -592,7 +628,7 @@ export class GeneratorVisitor extends Visitor {
       const httpVerb = this.position() as string
       const pathKey = this.position(1) as string
       const key = `${pathKey}.${httpVerb}`
-      console.log("LOL", key)
+      // console.log("LOL", key)
       const self = this
 
       const o: Operation = {
@@ -682,7 +718,7 @@ export class ModelGenerator {
     const baseName = propertySchema.title || key
     const propertySchemaCtx = this.visitor.schemas.get(propertySchema)
     const pkey = propertySchemaCtx ? propertySchemaCtx.name(this.visitor) : key
-    const type = resolveType(this.target, ctx, schema, pkey, propertySchema)
+    const type = resolveType(this.target, ctx, schema, key, pkey, propertySchema)
     const name = this.fieldRename(schema, key) || this.target.variable(baseName)
 
     return {
@@ -749,7 +785,7 @@ export class ModelGenerator {
     const values = oneOf.map((o) => {
       const v = {
         key: this.target.oneOfKey(o.key),
-        type: resolveType(this.target, ctx, schema, key, o),
+        type: resolveType(this.target, ctx, schema, key, name, o),
         value: o.key
       }
 
@@ -873,7 +909,7 @@ export class ModelGenerator {
 
     if (schema.type === "array") {
       // tslint:disable-next-line:max-line-length
-      const msg = schema.key + ": Array models cannot be represented in most programming languages. " +
+      const msg = pathAsString(ctx.path) + ": Array models cannot be represented in most programming languages. " +
         "Prefer an object and use the `items` property to generate a representable version of this model."
       logger.warn(msg)
       return {}
