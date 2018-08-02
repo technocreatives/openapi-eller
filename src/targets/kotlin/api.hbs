@@ -1,3 +1,5 @@
+@file:Suppress("MoveLambdaOutsideParentheses")
+
 {{#if config.package}}
 package {{{config.package}}}
 {{/if}}
@@ -167,8 +169,8 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
 {{#if isAuthorizationCode}}
     // This function should only be used during testing to ensure the security of the clientSecret.
     fun accessToken(activity: Activity, authState: AuthState, clientSecret: String): Single<AuthState> {
-        val code = authState.lastAuthorizationResponse?.authorizationCode ?:
-            return Single.error(Exception("No authorization response in auth state"))
+        val code = authState.lastAuthorizationResponse?.authorizationCode
+            ?: return Single.error(Exception("No authorization response in auth state"))
         
         val service = AuthorizationService(activity)
         return config.flatMap { config ->
@@ -201,7 +203,7 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
             return Single.create<String> { emitter ->
                 val service = AuthorizationService(context)
 
-                authState.performActionWithFreshTokens(service, ClientSecretPost(clientSecret), { accessToken, idToken, ex ->
+                authState.performActionWithFreshTokens(service, ClientSecretPost(clientSecret), { accessToken, _, ex ->
                     when {
                         ex != null -> emitter.onError(ex)
                         accessToken != null -> emitter.onSuccess(accessToken)
@@ -246,8 +248,8 @@ private fun createGson(): Gson {
 
         override fun read(reader: JsonReader): T {
             val s = reader.nextString()
-            return type::class.java.enumConstants.first { it.value == s } ?:
-                throw Exception("Invalid value: $s")
+            return type::class.java.enumConstants.first { it.value == s }
+                ?: throw Exception("Invalid value: $s")
         }
     }
 
@@ -273,6 +275,7 @@ private fun createGson(): Gson {
             }
 
             val format = type.rawType.getAnnotation(Format::class.java)?.value ?: "date-time"
+            @Suppress("UNCHECKED_CAST")
             return DateAdapter(format).nullSafe() as TypeAdapter<T>
         }
     }
@@ -283,6 +286,7 @@ private fun createGson(): Gson {
                 return null
             }
 
+            @Suppress("UNCHECKED_CAST")
             return EnumTypeAdapter(type.rawType as JsonEnum) as TypeAdapter<T>
         }
     }
@@ -298,17 +302,17 @@ interface {{{name}}}Service {
     companion object {
 {{#if servers}}
         fun create(server: {{{name}}}Server, vararg interceptors: Interceptor) =
-            create(server.toString(), *interceptors)
+                 create(server.toString(), *interceptors)
 
 {{/if}}
         fun create(baseUrl: String, vararg interceptors: Interceptor): {{{name}}}Service =
-            Retrofit.Builder()
-                    .client(interceptors.fold(OkHttpClient.Builder(), { acc, cur -> acc.addInterceptor(cur) }).build())
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(GsonConverterFactory.create(createGson()))
-                    .addCallAdapterFactory(RxJava2CallAdapterFactory.createAsync())
-                    .build()
-                    .create({{{name}}}Service::class.java)
+                Retrofit.Builder()
+                        .client(interceptors.fold(OkHttpClient.Builder(), { acc, cur -> acc.addInterceptor(cur) }).build())
+                        .baseUrl(baseUrl)
+                        .addConverterFactory(GsonConverterFactory.create(createGson()))
+                        .addCallAdapterFactory(RxJava2CallAdapterFactory.createAsync())
+                        .build()
+                        .create({{{name}}}Service::class.java)
     }
 {{#each groups}}
 {{#if name}}
@@ -337,10 +341,10 @@ data class {{{name}}}(
 {{#each fields}}
     {{#if key}}
     {{#unless isNameEqualToKey}}
-    @SerializedName("{{{key}}}")
+        @SerializedName("{{{key}}}")
     {{/unless}}
     {{/if}}
-    val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
+        val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
 {{/each}}
 ) : Serializable {
 {{#each enums}}
