@@ -191,8 +191,9 @@ function resolveTypeImpl(
     const items = propertySchema.items as SchemaObject
 
     const propertySchemaCtx = visitor.schemas.get(propertySchema)
-    console.log(propertySchemaCtx != null && propertySchemaCtx.toString(visitor))
-    const itemsName = propertySchemaCtx != null && !propertySchemaCtx.isTransient ? propertySchemaCtx.name(visitor) : name
+    const itemsName = propertySchemaCtx != null && !propertySchemaCtx.isTransient 
+      ? propertySchemaCtx.name(visitor)
+      : name
 
     // TODO: add support for Set<V>
     candidate = types.array.replace(

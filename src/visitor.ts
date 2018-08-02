@@ -450,7 +450,6 @@ export class SchemaContext {
   name(visitor: GeneratorVisitor): string {
     const thingo = () => {
       if (this.schema.type === "array") {
-        console.log(pathAsString(this.path))
         const items = this.schema.items as SchemaObject
         if (items != null && !isComplexType(items) && items.type != null) {
           return items.type 
@@ -909,9 +908,11 @@ export class ModelGenerator {
 
     if (schema.type === "array") {
       // tslint:disable-next-line:max-line-length
-      const msg = pathAsString(ctx.path) + ": Array models cannot be represented in most programming languages. " +
-        "Prefer an object and use the `items` property to generate a representable version of this model."
-      logger.warn(msg)
+      // const msg = pathAsString(ctx.path) + ": Array models cannot be represented in most programming languages. " +
+      //   "Prefer an object and use the `items` property to generate a representable version of this model."
+      // logger.warn(msg)
+
+      // TODO: step through children of array to find strange things like anonymous enums
       return {}
     }
 
