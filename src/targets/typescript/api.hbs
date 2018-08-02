@@ -11,6 +11,7 @@ interface VerbConfig {
 
 const neofitSymbol = Symbol("neofit")
 const baseUrlSymbol = Symbol("baseUrl")
+const interceptorSymbol = Symbol("interceptor")
 const Symbols = {
     request: Symbol("request"),
     response: Symbol("response"),
@@ -100,32 +101,18 @@ function resolveUrl(service: Neofit, key: string, args: IArguments): URL {
     return absoluteUrl
 }
 
-function createLowerKeyedObject(): { [key: string]: any } {
-    return new Proxy({}, {
-        set(target: any, prop, value) {
-            const key = prop.toString().toLowerCase()
-            target[key] = value
-            return true
-        },
-        get(target: any, prop) {
-            const key = prop.toString().toLowerCase()
-            return target[key]
-        }
-    })
-}
-
-function resolveHeaders(service: Neofit, key: string, args: IArguments, requestBodyType: BodyType): { [key: string]: string } {
+function resolveHeaders(service: Neofit, key: string, args: IArguments, requestBodyType: BodyType): Headers {
     const fields = Reflect.getMetadata(Symbols.header, service, key) || {}
-    const headers = createLowerKeyedObject()
+    const headers = new Headers()
 
     for (const key in fields) {
         const index = fields[key]
         headers[key] = args[index]
     }
 
-    headers["content-type"] = requestBodyType
-
-    return Object.assign({}, headers)
+    headers.set("Content-Type", requestBodyType)
+    
+    return headers
 }
 
 function resolveBody(service: Neofit, key: string, args: IArguments) {
@@ -148,55 +135,39 @@ function resolveResponseBodyType(service: Neofit, key: string): BodyType {
     return Reflect.getMetadata(Symbols.response, service, key) || BodyType.JSON
 }
 
-{{!-- 
-function inspect(service: Neofit) {
-    console.log(`Base URL: ${service[baseUrlSymbol]}`)
-
-    const proto = Object.getPrototypeOf(service)
-    const fields = Object.getOwnPropertyNames(proto)
-
-    for (const k of fields) {
-        const meta = Reflect.getMetadata(Symbols.url, service, k)
-        if (meta == null) {
-            continue
-        }
-
-        const { verb, path } = meta
-        const reqBodyType = resolveRequestBodyType(service, k)
-        const resBodyType = resolveResponseBodyType(service, k)
-        console.log(`${verb} ${path} -> ${reqBodyType}, <- ${resBodyType}`)
-
-        const queryParams = Reflect.getMetadata(Symbols.query, service, k)
-        if (queryParams) {
-            console.log(`  Query: ${Object.keys(queryParams).join(", ")}`)
-        }
-    }
-}
---}}
+type Interceptor = (url: URL, req: RequestInit) => Promise<void>
 
 abstract class Neofit {
-    [baseUrlSymbol]: URL
+    private [baseUrlSymbol]: URL
+    private [interceptorSymbol]: Interceptor[]
 
-    constructor(baseUrl: URL) {
+    constructor(baseUrl: URL, ...interceptors: Interceptor[]) {
         this[baseUrlSymbol] = baseUrl
+        this[interceptorSymbol] = interceptors
     }
 
-    private [neofitSymbol]<T>(key: string, args: IArguments): Promise<T> {
-        const absoluteUrl = resolveUrl(this, key, args)
+    private async [neofitSymbol]<T>(key: string, args: IArguments): Promise<T> {
+        const absoluteUrl: URL = resolveUrl(this, key, args)
         const method = resolveVerb(this, key)
         const body = resolveBody(this, key, args)
 
         const requestBodyType = resolveRequestBodyType(this, key)
         const responseBodyType = resolveResponseBodyType(this, key)
         const headers = resolveHeaders(this, key, args, requestBodyType)
-
-        const request = fetch(absoluteUrl.toString(), {
+        const requestInit: RequestInit = {
             method,
             headers,
             body
-        })
+        }
 
-        return request.then(response => {
+        for (const interceptor of this[interceptorSymbol]) {
+            await interceptor(absoluteUrl, requestInit)
+        }
+
+        const request = fetch(absoluteUrl.toString(), requestInit)
+        const response = await request
+
+        const responseBody = (() => {
             switch (responseBodyType) {
             case BodyType.JSON:
                 return response.json()
@@ -207,69 +178,50 @@ abstract class Neofit {
             case BodyType.Blob:
                 return response.blob()
             }
-        })
+        })()
+
+        try {
+            const body = await responseBody
+            return body
+        } catch (err) {
+            err.response = response
+            throw err
+        }
     }
 }
 
 {{#each security}}
 {{#if isApiKey}}
-export function {{name}}ApiKeyInterceptor(apiKey: string) {
-  return function interceptor(url, req) {
+export function {{name}}ApiKeyInterceptor(apiKey: string): Interceptor {
+  return function interceptor(url: URL, req: RequestInit): Promise<void> {
 {{#if inHeader}}
-    if (!req.headers) {
-      req.headers = {}
-    }
-
-    req.headers["{{{key}}}"] = apiKey
+    (req.headers as Headers).set("{{{key}}}", apiKey)
 {{/if}}
 {{#if inQuery}}
     url.searchParams.set("{{{key}}}", apiKey)
 {{/if}}
-    return req
+    return Promise.resolve()
   }
 }
 {{/if}}
 {{#if isHttp}}
 {{#if isBasic}}
-export function {{name}}BasicAuthInterceptor(username: string, password: string) {
-  return function interceptor(url, req) {
+export function {{name}}BasicAuthInterceptor(username: string, password: string): Interceptor {
+  return function interceptor(url: URL, req: RequestInit): Promise<void> {
     const base64Data = btoa(`${username}:${password}`)
-    const header = `Basic ${base64Data}`
-{{/if}}
-{{#if isBearer}}
-export function {{name}}BearerInterceptor(bearerToken: string) {
-  return function interceptor(url, req) {
-    const header = `Bearer ${bearerToken}`
-
-{{/if}}
-
-    if (!req.headers) {
-      req.headers = {}
-    }
-
-    req.headers.Authorization = header
-    return req
+    (req.headers as Headers).set("Authorization", `Basic ${base64Data}`)
+    return Promise.resolve()
   }
 }
 {{/if}}
-{{/each}}
-
-{{#each security}}
-{{#if isApiKey}}
-class {{{../name}}}{{{name}}}Interceptor(private val token: String): Interceptor {
-    override fun intercept(chain: Interceptor.Chain): Response {
-        val req = chain.request()
-        val newReq = req.newBuilder()
-{{#if inHeader}}
-            .header("{{{key}}}", token)
-{{/if}}
-{{#if inQuery}}
-            .url(req.url().newBuilder().addQueryParameter("{{{key}}}", token).build())
-{{/if}}
-            .build()
-        return chain.proceed(newReq)
-    }
+{{#if isBearer}}
+export function {{name}}BearerInterceptor(bearerToken: string): Interceptor {
+  return function interceptor(url: URL, req: RequestInit): Promise<void> {
+    (req.headers as Headers).set("Authorization", `Bearer ${bearerToken}`)
+    return Promise.resolve()
+  }
 }
+{{/if}}
 {{/if}}
 {{#if isOAuth2}}
 // OAuth interceptor not generated.
@@ -295,25 +247,18 @@ export const {{{name}}}Server = {
 {{/if}}
 
 export class {{{name}}}Service extends Neofit {
-        {{!-- fun create(baseUrl: String, vararg interceptors: Interceptor): {{{name}}}Service =
-            Retrofit.Builder()
-                    .client(interceptors.fold(OkHttpClient.Builder(), { acc, cur -> acc.addInterceptor(cur) }).build())
-                    .baseUrl(baseUrl)
-                    .addConverterFactory(GsonConverterFactory.create(createGson()))
-                    .addCallAdapterFactory(RxJava2CallAdapterFactory.createAsync())
-                    .build()
-                    .create({{{name}}}Service::class.java)
-    } --}}
 {{#each groups}}
 {{#if name}}
     // Section: {{name}}
 {{/if}}
 {{#each endpoints}}
-
     @{{{httpMethod}}}("{{{url}}}")
     {{{operationId}}}{{{operationParams}}}: {{{returnType}}} {
         return this[neofitSymbol]("{{{operationId}}}", arguments)
     }
+{{#unless @last}}
+
+{{/unless}}
 {{/each}}
 {{/each}}
 }
@@ -369,3 +314,29 @@ export class {{{name}}} {
 {{/if}}
 
 {{/each}}
+
+{{!-- 
+function inspect(service: Neofit) {
+    console.log(`Base URL: ${service[baseUrlSymbol]}`)
+
+    const proto = Object.getPrototypeOf(service)
+    const fields = Object.getOwnPropertyNames(proto)
+
+    for (const k of fields) {
+        const meta = Reflect.getMetadata(Symbols.url, service, k)
+        if (meta == null) {
+            continue
+        }
+
+        const { verb, path } = meta
+        const reqBodyType = resolveRequestBodyType(service, k)
+        const resBodyType = resolveResponseBodyType(service, k)
+        console.log(`${verb} ${path} -> ${reqBodyType}, <- ${resBodyType}`)
+
+        const queryParams = Reflect.getMetadata(Symbols.query, service, k)
+        if (queryParams) {
+            console.log(`  Query: ${Object.keys(queryParams).join(", ")}`)
+        }
+    }
+}
+--}}
