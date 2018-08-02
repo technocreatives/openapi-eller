@@ -191,7 +191,7 @@ export default class TypeScriptTarget extends Target {
 
     const { requestBody } = route
     if (requestBody != null) {
-      x.push(`@Body body: ${resolveSchemaType(this, null, requestBody, bodyName)}`)
+      x.push(`@Body(BodyType.JSON) body: ${resolveSchemaType(this, null, requestBody, bodyName)}`)
     }
 
     return `(${x.join(",\n        ")})`

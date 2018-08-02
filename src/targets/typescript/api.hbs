@@ -1,7 +1,8 @@
 /* tslint:disable:no-unused-variable */
 
 import "reflect-metadata"
-import fetch from "isomorphic-fetch"
+import "isomorphic-fetch"
+import { URL } from "universal-url"
 
 interface VerbConfig {
     verb: string
@@ -17,7 +18,8 @@ const Symbols = {
     path: Symbol("Path"),
     body: Symbol("Body"),
     query: Symbol("Query"),
-    header: Symbol("Header")
+    header: Symbol("Header"),
+    jsonProperty: Symbol("JsonProperty")
 }
 
 function httpVerb(verb: String, urlPath: string) {
@@ -56,6 +58,7 @@ function param(sym: Symbol, item: string) {
 const Path = param.bind(param, Symbols.path)
 const Query = param.bind(param, Symbols.query)
 const Header = param.bind(param, Symbols.header)
+const JsonProperty = param.bind(param, Symbols.jsonProperty)
 
 function Body(type?: BodyType) {
     function innerBody(target: Object, propertyKey: string | symbol, parameterIndex: number) {
@@ -86,7 +89,12 @@ function resolveUrl(service: Neofit, key: string, args: IArguments): URL {
     const absoluteUrl = new URL(path, service[baseUrlSymbol])
 
     for (const qs in queryParams) {
-        absoluteUrl.searchParams.set(qs, queryParams[qs])
+        const index = queryParams[qs]
+        const value = args[index]
+
+        if (value !== undefined) {
+            absoluteUrl.searchParams.set(qs, value)
+        }
     }
 
     return absoluteUrl
@@ -169,7 +177,7 @@ function inspect(service: Neofit) {
 abstract class Neofit {
     [baseUrlSymbol]: URL
 
-    constructor(baseUrl: URL, interceptors: ) {
+    constructor(baseUrl: URL) {
         this[baseUrlSymbol] = baseUrl
     }
 
