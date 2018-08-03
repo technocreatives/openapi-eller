@@ -37,6 +37,9 @@ export default class TypeScriptTarget extends Target {
   }
 
   variable(name: string): string {
+    if (/^[0-9]/.test(name)) {
+      return _.camelCase(`_${name}`)
+    }
     return _.camelCase(name)
   }
 
