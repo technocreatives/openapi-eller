@@ -2,7 +2,7 @@ import {
   OpenAPIObject, InfoObject, PathObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, SchemaObject, RequestBodyObject, ExampleObject, ComponentsObject, ServerObject, ResponsesObject, ResponseObject
 } from "openapi3-ts"
 
-import * as jref from "./jsonref"
+import jref from "json-refs"
 import * as yaml from "js-yaml"
 import * as fs from "fs"
 import { 
@@ -86,7 +86,7 @@ export abstract class Visitor {
     }
 
     private assertNotRef<T>(candidate: ReferenceObject | T): T {
-        if ((candidate as ReferenceObject).$ref) {
+        if (candidate == null || (candidate as ReferenceObject).$ref) {
             throw this.error("$ref found; must be resolved prior to being visited")
         }
 
@@ -365,9 +365,12 @@ export abstract class Visitor {
 
     readonly tree: OpenAPIObject
 
-    constructor(input: any) {
-        const tree = jref.resolve(input) as OpenAPIObject
+    static async create(input: any): Promise<GeneratorVisitor> {
+        const { resolved } = await jref.resolveRefs(input)
+        return new GeneratorVisitor(resolved as OpenAPIObject)
+    }
 
+    protected constructor(tree: OpenAPIObject) {
         const { openapi, info, paths } = tree
 
         if (openapi == null || !openapi.startsWith("3.")) {

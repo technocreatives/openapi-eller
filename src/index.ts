@@ -141,9 +141,9 @@ export function loadConfig(configPath: string | undefined): ConfigObject {
   return config
 }
 
-export function loadTarget(targetName: string, yamlPath: string, config: ConfigObject): Target {
+export async function loadTarget(targetName: string, yamlPath: string, config: ConfigObject): Promise<Target> {
   const unparsedTree = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8"))
-  const visitor = new GeneratorVisitor(unparsedTree)
+  const visitor = await GeneratorVisitor.create(unparsedTree)
   const targetClass = resolveTarget(targetName) as (new (visitor: GeneratorVisitor, config: ConfigObject) => Target) | null
   if (targetClass == null) {
     throw new Error(`No target found for name: ${targetName}`)

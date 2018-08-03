@@ -18,7 +18,7 @@ async function generateFromPath(
   const absOutputPath = path.resolve(outputPath)
 
   const config = loadConfig(configPath)
-  const target = loadTarget(targetName, yamlPath, config)
+  const target = await loadTarget(targetName, yamlPath, config)
   const args = await generateArgumentsFromTarget(target)
 
   if (isDebug) {
