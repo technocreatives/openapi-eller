@@ -3,6 +3,9 @@
 import "reflect-metadata"
 import "isomorphic-fetch"
 import { URL } from "universal-url"
+{{#if config.dev}}
+import puppeteer from "puppeteer"
+{{/if}}
 
 interface VerbConfig {
     verb: string
@@ -315,8 +318,34 @@ export class {{{name}}} {
 
 {{/each}}
 
-{{!-- 
-function inspect(service: Neofit) {
+{{#if config.dev}}
+export async function createOAuth2AuthCode(authUrl, clientId, redirectUri, scopes = null, execPath = null) {
+    const config: any = { headless: false }
+    if (execPath != null) {
+        config.executablePath = execPath
+    }
+
+    const browser = await puppeteer.launch(config)
+    const page = await browser.newPage()
+    
+    const url = new URL(authUrl)
+    url.searchParams.set("response_type", "code")
+    url.searchParams.set("client_id", clientId)
+    url.searchParams.set("redirect_uri", redirectUri)
+    if (scopes != null) {
+        url.searchParams.set("scope", scopes)
+    }
+    
+    await page.goto(url.toString(), { waitUntil: "networkidle2" })
+    const response = await page.waitForResponse(req => req.url().startsWith(redirectUri), { timeout: 0 })
+    const responseUrl = new URL(response.url())
+    
+    await browser.close()
+    
+    return responseUrl.searchParams.get("code")
+}
+
+export function printService(service: Neofit) {
     console.log(`Base URL: ${service[baseUrlSymbol]}`)
 
     const proto = Object.getPrototypeOf(service)
@@ -339,4 +368,4 @@ function inspect(service: Neofit) {
         }
     }
 }
---}}
+{{/if}}
