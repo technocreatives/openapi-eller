@@ -122,18 +122,15 @@ export default class TypeScriptTarget extends Target {
       x.push(`__reqBody.headers = { "Content-Type": "${mainMime}" }`)
 
       if (mainMime.endsWith("form-data")) {
-        const bodyContent = requestBody.content[mainMime]
-        const schema = bodyContent.schema as OpenApiGenSchema
-
-        if (!schema.properties) {
+        if (!requestBody.properties) {
           throw new Error(`Unexpected structure: Schema properties are mising`)
         }
         // TODO: this should be consistent across platforms
         
-        const lines = Object.keys(schema.properties).map((key) => {
+        const lines = Object.keys(requestBody.properties).map((key) => {
           const v = this.variable(key)
 
-          if (schema.required && schema.required.indexOf(key) > -1) {
+          if (requestBody.required && requestBody.required.indexOf(key) > -1) {
             return `__formData.append("${key}", body.${v})`
           }
 

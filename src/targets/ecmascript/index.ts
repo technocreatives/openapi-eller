@@ -123,24 +123,22 @@ export default class EcmaScriptTarget extends Target {
     }
 
     if (route.requestBody) {
-      const requestBody = route.requestBody as RequestBodyObject
-      const mainMime = Object.keys(requestBody.content)[0]
+      const requestBodySchema = route.requestBody as OpenApiGenSchema;
+      const mimeType = route.requestMediaType as string;
 
-      x.push(`__reqBody.headers = { "Content-Type": "${mainMime}" }`)
+      x.push(`__reqBody.headers = { "Content-Type": "${mimeType}" }`)
 
-      if (mainMime.endsWith("form-data")) {
-        const bodyContent = requestBody.content[mainMime]
-        const schema = bodyContent.schema as OpenApiGenSchema
-
-        if (!schema.properties) {
+      if (mimeType.endsWith("form-data")) {
+        
+        if (!requestBodySchema.properties) {
           throw new Error(`Unexpected structure: Schema properties are mising`)
         }
         // TODO: this should be consistent across platforms
         
-        const lines = Object.keys(schema.properties).map((key) => {
+        const lines = Object.keys(requestBodySchema.properties).map((key) => {
           const v = this.variable(key)
 
-          if (schema.required && schema.required.indexOf(key) > -1) {
+          if (requestBodySchema.required && requestBodySchema.required.indexOf(key) > -1) {
             return `__formData.append("${key}", body.${v})`
           }
 
