@@ -2,7 +2,7 @@ import {
   OpenAPIObject, InfoObject, PathObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, SchemaObject, RequestBodyObject, ExampleObject, ComponentsObject, ServerObject, ResponsesObject, ResponseObject
 } from "openapi3-ts"
 
-import jref from "json-ref-lite"
+import * as jref from "./jsonref"
 import * as yaml from "js-yaml"
 import * as fs from "fs"
 import { 

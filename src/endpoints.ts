@@ -73,12 +73,12 @@ export function generateEndpoints(
 
     try {
       const r = findResponseSchema(operationObject.responses)
+
       if (r != null) {
         const rc = visitor.schemas.get(r)
         
         if (rc == null) {
-          console.error("EEEEEE", r)
-          throw new Error()
+          throw new Error("Found response schema but could not find response context")
         }
         
         responseSchema = r
