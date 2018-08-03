@@ -107,7 +107,7 @@ function resolveHeaders(service: Neofit, key: string, args: IArguments, requestB
 
     for (const key in fields) {
         const index = fields[key]
-        headers[key] = args[index]
+        headers.set(key, args[index])
     }
 
     headers.set("Content-Type", requestBodyType)
