@@ -344,9 +344,14 @@ data class {{{name}}}(
         @SerializedName("{{{key}}}")
     {{/unless}}
     {{/if}}
-        val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
+    val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
 {{/each}}
 ) : Serializable {
+{{#each fields}}
+{{#if isNested}}
+    {{> nested }}
+{{/if}}
+{{/each}}
 {{#each enums}}
 {{#if isEnum}}
     enum class {{{name}}}(override val value: String): JsonEnum {

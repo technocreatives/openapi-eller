@@ -726,13 +726,18 @@ export class ModelGenerator {
     const pkey = propertySchemaCtx ? propertySchemaCtx.name(this.visitor) : key
     const type = resolveType(this.target, ctx, schema, key, pkey, propertySchema)
     const name = this.fieldRename(schema, key) || this.target.variable(baseName)
+    const fields = propertySchema.properties && propertySchemaCtx
+      ? this.processFields(propertySchemaCtx, propertySchema, propertySchema.properties)
+      : {}
 
     return {
       name,
       type,
       key,
+      fields,
       doc: this.target.fieldDoc(propertySchema),
       isHashable: this.target.isHashable(type),
+      isNested: propertySchema.type === "object",
       isEnum: propertySchema.enum != null,
       isOneOf: propertySchema.oneOf != null,
       isOptional: schema.required ? !schema.required.includes(key) : true,
