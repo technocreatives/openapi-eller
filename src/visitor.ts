@@ -582,6 +582,10 @@ export class GeneratorVisitor extends Visitor {
             return
         }
 
+        if (schema.items) {
+          this.visitSchema(schema.items, null, combiner)
+        }
+
         if (parentSchema != null) {
             let parentCtx = this.schemas.get(parentSchema)
 
