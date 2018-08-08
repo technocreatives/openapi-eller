@@ -1,4 +1,4 @@
-import { 
+import {
   OpenAPIObject,
   SchemaObject,
   ComponentsObject,
@@ -99,11 +99,11 @@ export abstract class Target {
   abstract servers(servers: ServerObject[]): TargetServer[]
   abstract generate(args: GenerateArguments): { [filename: string]: string }
   abstract operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
-  
+
   operationParamsDefaults(route: Operation, bodyName: string): string | undefined {
     return
   }
-  
+
   operationArgs(route: Operation, bodyName: string): string | undefined {
     return
   }

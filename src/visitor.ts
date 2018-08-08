@@ -5,7 +5,7 @@ import {
 import jref from "json-refs"
 import * as yaml from "js-yaml"
 import * as fs from "fs"
-import { 
+import {
   OpenApiGenTree,
   Target,
   TargetModel,
@@ -65,7 +65,7 @@ export abstract class Visitor {
         for (let i = 0; i < count; ++i) {
             this.walkedPath.pop()
         }
-        
+
         // console.log("<- " + this.pathToString())
     }
 
@@ -117,7 +117,7 @@ export abstract class Visitor {
         }
         this.unwalk()
       }
-      
+
       if (allOf != null) {
         iterWalk("allOf", allOf)
       } else if (oneOf != null) {
@@ -162,7 +162,7 @@ export abstract class Visitor {
       if (this.walkedSet.has(schema)) {
         return
       }
-      
+
       if (properties != null) {
         this.walk("properties")
         for (const propertyKey in properties) {
@@ -184,7 +184,7 @@ export abstract class Visitor {
         this.walkSchema(this.assertNotRef(additionalProperties), schema, undefined)
         this.unwalk()
       }
-      
+
       this.walkedSet.add(schema)
     }
 
@@ -244,7 +244,7 @@ export abstract class Visitor {
         this.unwalk()
       }
     }
-    
+
     walkOperation(pathKey: string, httpVerb: string, operation: OperationObject): void {
         const { operationId, schema, parameters, requestBody, responses, summary, description, tags } = operation
 
@@ -259,7 +259,7 @@ export abstract class Visitor {
             this.walkParameters(pathKey, httpVerb, parameters)
             this.unwalk()
         }
-        
+
         if (requestBody != null) {
             this.walk("requestBody")
             this.walkRequestBody(this.assertNotRef(requestBody), operationId)
@@ -344,7 +344,7 @@ export abstract class Visitor {
         }
         // callbacks, securitySchemes
         const { schemas, requestBodies, responses } = components
-        
+
         iterWalk("schema", this.walkComponentSchema.bind(this), schemas)
         iterWalk("schema", this.walkSchema.bind(this), schemas)
         iterWalk("requestBodies", this.walkRequestBody.bind(this), requestBodies)
@@ -405,7 +405,7 @@ export abstract class Visitor {
         if (components != null) {
             this.walkComponents(components)
         }
-        
+
         this.walkPaths(paths)
     }
 }
@@ -435,7 +435,7 @@ function isComponentSchema(path: (string | number)[]): boolean {
 
 export function isComplexType(schema: SchemaObject): boolean {
     const { type } = schema
-    
+
     if (schema.allOf || schema.anyOf || schema.oneOf) {
         return true
     }
@@ -455,7 +455,7 @@ export class SchemaContext {
       if (this.schema.type === "array") {
         const items = this.schema.items as SchemaObject
         if (items != null && !isComplexType(items) && items.type != null) {
-          return items.type 
+          return items.type
         }
         const child = this.children.values().next()
         if (child == null || child.value == null) {
@@ -639,7 +639,7 @@ export class GeneratorVisitor extends Visitor {
         urlPath: pathKey,
         summary,
         description,
-        tags, 
+        tags,
         get parameters(): ParameterObject[] {
           const baseParams = self.paramMap[pathKey] || []
           const verbParams = self.paramMap[key] || []
@@ -679,23 +679,42 @@ export class ModelGenerator {
     this.target = target
   }
 
-  private processEnum(ctx: SchemaContext, schema: SchemaObject): TargetModel {
+  private processEnum(ctx: SchemaContext, schema: SchemaObject, isOneOf: boolean = false): TargetModel {
     const enumValue = schema.enum
+    const oneOfValue = schema.oneOf
 
-    if (enumValue == null) {
-      throw new Error(`${pathAsString(ctx.path)}: processing enum without enum present`)
+    if (enumValue == null && oneOfValue == null) {
+      throw new Error(`${pathAsString(ctx.path)}: processing enum/oneOf without enum or oneOf present`)
     }
 
-    return {
-      name: this.target.cls(ctx.name(this.visitor)),
-      type: "enum",
-      isEnum: true,
-      values: enumValue.map((x: string) => {
+    let values: any = []
+
+    if (enumValue) {
+      values = enumValue.map((x: string) => {
         return {
           key: this.target.enumKey(x),
           value: x
         }
-      }),
+      })
+    } else if (oneOfValue) {
+
+      values = oneOfValue.map((o) => {
+        // const v = {
+        //   key: this.target.oneOfKey(o.key),
+        //   type: resolveType(this.target, ctx, schema, key, name, o),
+        //   value: o.key
+        // }
+
+        return v
+      })
+
+      //ctx.children.forEach((childCtx, childSchema) => values.push(this.processOneOfField(ctx, schema, childSchema, childCtx.name(this.visitor))))//oneOfValue.map(this.processOneOfField)
+    }
+    return {
+      name: this.target.cls(ctx.name(this.visitor)),
+      type: isOneOf ? "enum" : "oneOf",
+      isEnum: true,
+      values,
       interfaces: [],
       fields: {},
       enums: {},
@@ -774,7 +793,7 @@ export class ModelGenerator {
     const oneOf = prop.oneOf as SchemaObject[]
     const { discriminator } = prop
     const oneOfProperties = oneOf[0].properties
-    
+
     if (!(oneOfProperties && discriminator)) {
       // tslint:disable-next-line:max-line-length
       throw new Error(`Object with oneOf definition is lacking a discriminator: ${schema.key}`)
@@ -801,7 +820,7 @@ export class ModelGenerator {
 
       return v
     })
-    
+
     const enumObj: EnumObject = {
       name,
       discriminator: discriminatorValue,
@@ -849,6 +868,10 @@ export class ModelGenerator {
     }
   }
 
+  private processOneOf(ctx: SchemaContext, schema: SchemaObject): ModelAndInterfaces {
+    return { model: this.processEnum(ctx, schema, true) }
+  }
+
   private processModelObject(ctx: SchemaContext, schema: SchemaObject): ModelAndInterfaces {
     if (ctx.combiner === "allOf") {
       return this.processAllOf(ctx, schema)
@@ -859,7 +882,7 @@ export class ModelGenerator {
     if (properties == null) {
       return {}
     }
-  
+
     const fields = this.processFields(ctx, schema, properties)
     const modelInterfaces: { [key: string]: string[] } = {}
     const enums: { [key: string]: EnumObject } = {}
@@ -907,7 +930,10 @@ export class ModelGenerator {
 
     if (schema.allOf) {
       return this.processAllOf(ctx, schema)
+    } else if (schema.oneOf) {
+      return this.processOneOf(ctx, schema)
     }
+
 
     if (schema.type === "array") {
       // tslint:disable-next-line:max-line-length
@@ -919,7 +945,7 @@ export class ModelGenerator {
       return {}
     }
 
-    if (schema.type === "object") {
+    if (schema.type === "object" || isComplexType(schema)) {
       return this.processModelObject(ctx, schema)
     }
 
@@ -953,7 +979,7 @@ export class ModelGenerator {
     _.forEach(modelInterfaces, (nestedInterfaces, k: string) => {
       models[k].interfaces = nestedInterfaces
     })
-    
+
     return models
   }
 }
