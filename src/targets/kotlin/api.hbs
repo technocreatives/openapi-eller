@@ -344,7 +344,7 @@ data class {{{name}}}(
         @SerializedName("{{{key}}}")
     {{/unless}}
     {{/if}}
-    val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
+        val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
 {{/each}}
 ) : Serializable {
 {{#each fields}}
