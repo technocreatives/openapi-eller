@@ -583,6 +583,7 @@ export class GeneratorVisitor extends Visitor {
         }
 
         if (schema.items) {
+          // Parent schema needs to be explicitly null, otherwise it crashes
           this.visitSchema(schema.items, null, combiner)
         }
 
