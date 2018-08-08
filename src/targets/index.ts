@@ -8,7 +8,6 @@ import {
 } from "types"
 import hbs, { TemplateDelegate, HelperOptions } from "handlebars"
 import path from "path"
-import _ from "lodash"
 
 import EcmaScriptTarget from "./ecmascript"
 import AspNetTarget from "./csharp-aspnet"
@@ -65,8 +64,6 @@ export function handlebarsInstance(tmplPath: string, partialsDir: string): Templ
     const content = options.fn(this)
     return content.split("\n").map(s => `${padding}${s}`.trimRight()).join("\n")
   })
-
-  instance.registerHelper("upperFirst", _.upperFirst)
 
   for (const partialFilename of fs.readdirSync(partialsDir)) {
     if (!partialFilename.endsWith(".hbs")) {

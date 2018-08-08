@@ -16,7 +16,7 @@ import {
   TargetFieldMap
 } from "types"
 import logger from "winston"
-import { resolveType } from "./targets"
+import { resolveType, resolveSchemaType } from "./targets"
 import _ from "lodash"
 
 const httpVerbs = [
@@ -725,6 +725,7 @@ export class ModelGenerator {
     const propertySchemaCtx = this.visitor.schemas.get(propertySchema)
     const pkey = propertySchemaCtx ? propertySchemaCtx.name(this.visitor) : key
     const type = resolveType(this.target, ctx, schema, key, pkey, propertySchema)
+    const rawType = resolveSchemaType(this.target, ctx, schema, pkey)
     const name = this.fieldRename(schema, key) || this.target.variable(baseName)
     const fields = propertySchema.properties && propertySchemaCtx
       ? this.processFields(propertySchemaCtx, propertySchema, propertySchema.properties)
@@ -733,6 +734,7 @@ export class ModelGenerator {
     return {
       name,
       type,
+      rawType,
       key,
       fields,
       doc: this.target.fieldDoc(propertySchema),
