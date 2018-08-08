@@ -33,7 +33,7 @@ export default class KotlinTarget extends Target {
     if (!validIdentifiers.test(newName)) {
       return `\`${newName}\``
     }
-   
+
     return newName
   }
 
@@ -68,7 +68,7 @@ export default class KotlinTarget extends Target {
       if (ks === "1") {
         return "ONE"
       }
-      
+
       return `_${upperSnake(key)}`
     }
 
@@ -92,7 +92,7 @@ export default class KotlinTarget extends Target {
   optional(type: string): string {
     return `${type}?`
   }
-  
+
   operationId(route: SchemaObject): string {
     if (route.operationId) {
       return this.variable(route.operationId)
@@ -137,7 +137,7 @@ export default class KotlinTarget extends Target {
     const { requestBody } = route
     if (requestBody != null) {
       // const requestBody = route.requestBody as RequestBodyObject
-      
+
       // if (requestBody.content) {
       //   const content = requestBody.content
       //   const k = Object.keys(content)[0]
@@ -182,7 +182,7 @@ export default class KotlinTarget extends Target {
     return `Single<${type}>`
   }
 
-  servers(s: ServerObject[]): TargetServer[] {
+  servers(s: ServerObject[] = []): TargetServer[] {
     return s.map((x, i) => ({
       url: this.url(x.url),
       description: this.cls(x.description || `default${i}`),

@@ -1,0 +1,16 @@
+data class {{{rawType}}}(
+{{#each fields}}
+{{#if key}}
+{{#unless isNameEqualToKey}}
+    @SerializedName("{{{key}}}")
+{{/unless}}
+{{/if}}
+        val {{{name}}}: {{#if format}}@Format("{{{format}}}") {{/if}}{{{type}}}{{#unless @last}},{{/unless}}
+{{/each}}
+) : Serializable {
+    {{#each fields}}
+    {{#if isNested}}
+    {{> nested }}
+    {{/if}}
+    {{/each}}
+}

@@ -16,7 +16,7 @@ import {
   TargetFieldMap
 } from "types"
 import logger from "winston"
-import { resolveType } from "./targets"
+import { resolveType, resolveSchemaType } from "./targets"
 import _ from "lodash"
 
 const httpVerbs = [
@@ -582,6 +582,11 @@ export class GeneratorVisitor extends Visitor {
             return
         }
 
+        if (schema.items) {
+          // Parent schema needs to be explicitly null, otherwise it crashes
+          this.visitSchema(schema.items, null, combiner)
+        }
+
         if (parentSchema != null) {
             let parentCtx = this.schemas.get(parentSchema)
 
@@ -721,14 +726,21 @@ export class ModelGenerator {
     const propertySchemaCtx = this.visitor.schemas.get(propertySchema)
     const pkey = propertySchemaCtx ? propertySchemaCtx.name(this.visitor) : key
     const type = resolveType(this.target, ctx, schema, key, pkey, propertySchema)
+    const rawType = resolveSchemaType(this.target, ctx, schema, pkey)
     const name = this.fieldRename(schema, key) || this.target.variable(baseName)
+    const fields = propertySchema.properties && propertySchemaCtx
+      ? this.processFields(propertySchemaCtx, propertySchema, propertySchema.properties)
+      : {}
 
     return {
       name,
       type,
+      rawType,
       key,
+      fields,
       doc: this.target.fieldDoc(propertySchema),
       isHashable: this.target.isHashable(type),
+      isNested: propertySchema.type === "object",
       isEnum: propertySchema.enum != null,
       isOneOf: propertySchema.oneOf != null,
       isOptional: schema.required ? !schema.required.includes(key) : true,
