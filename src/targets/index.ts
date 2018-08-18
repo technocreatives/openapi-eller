@@ -8,7 +8,6 @@ import {
 import hbs, { TemplateDelegate, HelperOptions } from "handlebars"
 import path from "path"
 
-import EcmaScriptTarget from "./ecmascript"
 import AspNetTarget from "./csharp-aspnet"
 import SwiftTarget from "./swift"
 import RustTarget from "./rust"
@@ -22,12 +21,11 @@ export {
   KotlinTarget,
   SwiftTarget,
   AspNetTarget,
-  RustTarget,
-  EcmaScriptTarget
+  RustTarget
 }
 
 export const knownTargets = [
-  "csharp-aspnet", "ecmascript", "kotlin", "rust", "swift", "typescript"
+  "csharp-aspnet", "kotlin", "rust", "swift", "typescript"
 ]
 
 export function resolveTarget(targetName: string): typeof Target | null {
@@ -41,11 +39,6 @@ export function resolveTarget(targetName: string): typeof Target | null {
     case "aspnet":
     case "csharp-aspnet":
       return AspNetTarget
-    case "ecmascript":
-    case "javascript":
-    case "js":
-    case "es":
-      return EcmaScriptTarget
     case "ts":
     case "typescript":
       return TypeScriptTarget
@@ -115,8 +108,6 @@ export function resolveType(
   const isOptional = schema.required 
     ? schema.required.indexOf(key) < 0
     : true
-  // console.log(name, schema.required, isOptional)
-  // const isConstant = prop.enum ? prop.enum.length === 1 : false
 
   return resolveTypeImpl(target, context, schema, key, name, prop, isOptional)
 }

@@ -1,5 +1,16 @@
 /* tslint:disable:no-unused-variable */
 
+/*
+ * In order to generate this file for ECMAScript, create a package.json
+ * with the dependencies: reflect-metadata isomorphic-fetch universal-url
+ *
+ * Generate a tsconfig.json using tsc (install with npm i typescript if needed).
+ * You should set the target to at least "es2016" and enable experimentalDecorators.
+ *
+ * You may need to disable "strict" for compilation to succeed. These issues are bugs,
+ * so please report them.
+ */
+
 import "reflect-metadata"
 import "isomorphic-fetch"
 import { URL } from "universal-url"
@@ -276,7 +287,7 @@ export enum {{{name}}} {
 }
 {{else}}
 export class {{{name}}} {
-{{#each fields}}
+{{!-- {{#each fields}}
 {{#unless isNameEqualToKey}}
     @JsonProperty("{{{key}}}")
 {{/unless}}
@@ -292,7 +303,7 @@ export class {{{name}}} {
 {{else}}
     {{{name}}}: {{{type}}}
 {{/if}}
-{{/each}}
+{{/each}} --}}
 {{#each enums}}
 
 {{#if isEnum}}
