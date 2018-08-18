@@ -182,7 +182,7 @@ export default class KotlinTarget extends Target {
     return `Single<${type}>`
   }
 
-  servers(s: ServerObject[] = []): TargetServer[] {
+  servers(s: ServerObject[]): TargetServer[] {
     return s.map((x, i) => ({
       url: this.url(x.url),
       description: this.cls(x.description || `default${i}`),
