@@ -2,31 +2,16 @@ All targets support a certain amount of customization of the end result.
 Those customizations are specific per target and are specified in the config
 file you can pass to the generator.
 
-The config file is a simple JSON file e.g. { 'optionName': 'optionValue' }.
+Configuration files are JSON or YAML files matching the relevant key-value
+pairs.
 
-=== JavaScript
+=== TypeScript
 
-==== Target name
-In order to use this target you can use any of these target names:
+==== Target aliases
 
-* ecmascript
-* javascript
-* js
-* es
+- typescript
+- ts
 
-==== Dependencies
+==== Configuration
 
-You need to install the `base-64` and `node-fetch` packages.
-
-==== Target specific options
-
-These are the options you can use for the JavaScript target.
-
-* commonjs (`boolean`): if you prefer CommonJS modules set this to true
-* es6 (`boolean`): if you're not using CommonJS but would prefer if the result
-uses ES6 features set this to true
-* urlShim (`boolean`): this option will include a custom shim for URL in cases 
-where `whatwg-url` is not an option, for example React Native
-* include (`string[]`): this option specifies a list of tags; only operations
-with those tags will be included in the code generation, all others will not be
-included in the result;
+`dev` (boolean): when true, will generate development imports and functions.

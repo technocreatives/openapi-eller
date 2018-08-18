@@ -32,6 +32,7 @@ A conforming implementation consists of at the very least:
 * Generates RFC-compliant handlers for OAuth 2 where required
 * Handles all types supported by OpenAPI v3, and preferrably has a mechanism
   for handling well-known formats, and custom extensions for those formats
+* Generates interceptors for each type of authentication supported by OpenAPI
 
 ==== Nested Objects
 
