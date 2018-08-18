@@ -1,5 +1,19 @@
 === Basic requirements for a conforming target
 
+==== Getting Started
+
+A target is the recipe for generating API code for a given platform. It may
+generate either a client or a server depending on its need (and the name of
+the target will make it obvious, assume client by default).
+
+A target template is usually one Handlebars template, with any number of partials
+necessary to make a fully functional tool.
+
+A target generator can be configured with a JSON or YAML file of key-value 
+parameters that can be accessed from the code generation templates.
+
+Each target's entry point is an `index.ts` file implementing the `Target` type.
+
 ==== Basic API
 
 A conforming implementation consists of at the very least:
@@ -18,6 +32,24 @@ A conforming implementation consists of at the very least:
 * Generates RFC-compliant handlers for OAuth 2 where required
 * Handles all types supported by OpenAPI v3, and preferrably has a mechanism
   for handling well-known formats, and custom extensions for those formats
+
+==== Nested Objects
+
+OpenAPI specifications tend to have nested objects inside other objects, as is
+common with all JSON documents. In order to handle this effectively, depending on
+the placement of the object and whether or not it is anonymously defined (does not 
+appear in the top-level schemas list), a subobject might be generated.
+
+Some languages like Swift or Kotlin will allow nesting a class inside another class
+definition, however some others do not. In the case where your language does not 
+allow nested classes, it is recommended that you generate these classes at the top
+level of your generated models, with the nesting generated as part of the name
+of the class.
+
+For instance, if you have an object `Foo`, with an anonymous field `bar` which would
+ordinarily generate the nested type `Bar` and be accessed in Kotlin as `Foo.Bar`, in
+your flat language you may need to name the type `Foo_Bar` or some other underutilised
+delimiter in order to guarantee namespace integrity.
 
 ==== Documentation
 
