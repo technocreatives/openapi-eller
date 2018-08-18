@@ -35,29 +35,28 @@ for those targets listed as supported. Behaviour is subject to change between va
 - Uses an interceptor pattern for handling security schemas in clients
 - OAuth 2 clients comply with [RFC6749](https://tools.ietf.org/html/rfc6749) and 
   [RFC6750](https://tools.ietf.org/html/rfc6750) (Bearer Token Usage)
-- Targets can be configured with a JSON file for simple, reproducable generations
+- Targets can be configured with a JSON or YAML file for simple, reproducable generations
 - Easily extensible Handlebars templates for core structure of files, with TypeScript 
   target-specific code for handling with pointy bits
 
 ## Supported targets
 
 - Clients:
-  - ECMAScript (JS) (browser and backend)
+  - ECMAScript
   - Kotlin (Android)
   - Swift
+  - TypeScript
 - Servers:
   - ASP.NET (MVC Framework 4.5)
 
 There are other targets in the tree, though they are a work-in-progress.
 
-## Roadmap
+## Roadmap to 0.4
 
-- [x] Abstract class for handling targets
-- [x] Modularise and clean up the messy generator code
-- [x] Support for nested anonymous objects (there's already partial support but it's patchy)
-- [ ] A template generator for building new targets with ease
-- [ ] A template checklist for generator compliance
-- [ ] Documentation for the internal representation of the schemas to ease development
+- [ ] Generating platform-conformant API documentation
+- [ ] Handle returning headers, status codes and raw response objects where necessary
+- [ ] Handle mandatory configuration for targets
+- [ ] Generate documentation for target configuration
 
 ## Users
 
