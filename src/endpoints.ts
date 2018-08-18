@@ -1,9 +1,7 @@
 import { find, values } from "lodash"
 import {
   Target,
-  ConfigObject,
-  TargetEndpointsGroup,
-  OpenApiGenSchema
+  TargetEndpointsGroup
 } from "types"
 import {
   ResponseObject,
@@ -99,17 +97,12 @@ export function generateEndpoints(
       requestBodyContext = visitor.schemas.get(requestBody)
     }
 
-    // TODO add req body
     const anonymousReqBodyName = requestBodyContext != null
       ? target.cls(requestBodyContext.name(visitor))
       : `${target.cls(operationId)}Body`
     const anonymousResponseName = responseSchemaContext != null
       ? target.cls(responseSchemaContext.name(visitor))
       : null
-
-    // if (responseSchema && responseSchema.type === "array") {
-    //   console.log(responseSchema)
-    // }
 
     const schemaType = resolveSchemaType(target, responseSchemaContext || null, responseSchema || null, anonymousResponseName)
     const returnType = target.returnType(schemaType)
@@ -139,7 +132,7 @@ export function generateEndpoints(
 
     const operationParams = target.operationParams(operationObject, anonymousReqBodyName, paramNames)
     // TODO: extra param with real names yo
-    const opParamDefaults = target.operationParamsDefaults(operationObject, anonymousReqBodyName)
+    const opParamDefaults = target.operationParamsDefaults(operationObject, anonymousReqBodyName, paramNames)
       || operationParams
 
     groups[group].endpoints.push({

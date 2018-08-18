@@ -3,8 +3,7 @@ import fs from "fs"
 import {
   Target,
   TargetTypeMap,
-  TargetFormatMap,
-  OpenApiGenSchema
+  TargetFormatMap
 } from "types"
 import hbs, { TemplateDelegate, HelperOptions } from "handlebars"
 import path from "path"

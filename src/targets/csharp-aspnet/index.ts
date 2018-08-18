@@ -4,8 +4,8 @@ import hbs from "handlebars"
 
 import CSharpTarget from "../csharp"
 import { resolveSchemaType } from "targets"
-import { OpenApiGenSchema, GenerateArguments } from "types"
-import { ParameterObject, RequestBodyObject, OperationObject } from "openapi3-ts"
+import { GenerateArguments } from "types"
+import { ParameterObject, RequestBodyObject, SchemaObject } from "openapi3-ts"
 import { Operation } from "visitor";
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
@@ -31,11 +31,11 @@ export default class AspNetTarget extends CSharpTarget {
     if (route.parameters) {
       const params = route.parameters as ParameterObject[]
       x = params.map((p) => {
-        const type = resolveSchemaType(this, null, (<OpenApiGenSchema>p.schema), p.name)
+        const type = resolveSchemaType(this, null, (<SchemaObject>p.schema), p.name)
         
         const hasQMark = type === "DateTime" 
           || (type !== "string" && type.toLowerCase() === type) 
-          || (<OpenApiGenSchema>p.schema).enum
+          || (<SchemaObject>p.schema).enum
 
         const suffix = p.required ? "" : " = null"
         // tslint:disable-next-line:max-line-length
@@ -48,7 +48,7 @@ export default class AspNetTarget extends CSharpTarget {
       if (k) {
         const content = (<RequestBodyObject>route.requestBody).content[k]
         // tslint:disable-next-line:max-line-length
-        x.push(`${resolveSchemaType(this, null, (<OpenApiGenSchema>content.schema), bodyName)} body`)
+        x.push(`${resolveSchemaType(this, null, (<SchemaObject>content.schema), bodyName)} body`)
       }
     }
 

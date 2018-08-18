@@ -6,16 +6,13 @@ import { typeResolvers } from "targets"
 
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ParameterObject,
-  RequestBodyObject,
   ServerObject,
   ReferenceObject
 } from "openapi3-ts"
@@ -47,11 +44,11 @@ export default class TypeScriptTarget extends Target {
     return `${name} | undefined`
   }
 
-  fieldDoc(doc: OpenApiGenSchema): string {
+  fieldDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 
-  modelDoc(doc: OpenApiGenSchema): string {
+  modelDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 

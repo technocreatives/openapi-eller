@@ -2,23 +2,19 @@ import fs from "fs"
 import _ from "lodash"
 import hbs from "handlebars"
 
-// import { typeResolvers } from "targets"
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ParameterObject,
-  RequestBodyObject,
   ServerObject,
   ReferenceObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
@@ -52,11 +48,11 @@ export default class EcmaScriptTarget extends Target {
     return name
   }
 
-  fieldDoc(doc: OpenApiGenSchema): string {
+  fieldDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 
-  modelDoc(doc: OpenApiGenSchema): string {
+  modelDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 
@@ -123,7 +119,7 @@ export default class EcmaScriptTarget extends Target {
     }
 
     if (route.requestBody) {
-      const requestBodySchema = route.requestBody as OpenApiGenSchema;
+      const requestBodySchema = route.requestBody as SchemaObject;
       const mimeType = route.requestMediaType as string;
 
       x.push(`__reqBody.headers = { "Content-Type": "${mimeType}" }`)

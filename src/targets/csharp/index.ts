@@ -5,14 +5,12 @@ import hbs from "handlebars"
 import { typeResolvers, resolveSchemaType } from "targets"
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
@@ -32,14 +30,14 @@ const reservedWords: string[] = []
 export default class CSharpTarget extends Target {
   types: TargetTypeMap = typeResolvers("csharp")
 
-  modelDoc(defn: OpenApiGenSchema): string | undefined {
+  modelDoc(defn: SchemaObject): string | undefined {
     if (defn.description) {
       return genComment(4, defn.description)
     }
     return ""
   }
 
-  fieldDoc(defn: OpenApiGenSchema): string | undefined {
+  fieldDoc(defn: SchemaObject): string | undefined {
     if (defn.description) {
       return genComment(8, defn.description)
     }
@@ -114,7 +112,7 @@ export default class CSharpTarget extends Target {
     const params = route.parameters as ParameterObject[]
     const x = params.map((p) => {
       // tslint:disable-next-line:max-line-length
-      return `${resolveSchemaType(this, null, (<OpenApiGenSchema>p.schema), p.name)} ${_.camelCase(p.name)}`
+      return `${resolveSchemaType(this, null, (<SchemaObject>p.schema), p.name)} ${_.camelCase(p.name)}`
     })
     return `(${x.join(",\n            ")})`
   }

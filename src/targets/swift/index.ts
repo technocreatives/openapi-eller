@@ -5,14 +5,12 @@ import hbs from "handlebars"
 import { typeResolvers, resolveSchemaType } from "targets"
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
@@ -104,7 +102,7 @@ export default class SwiftTarget extends Target {
     }
     const x = route.parameters.map((p) => {
       const param = p as ParameterObject
-      const schema = param.schema as OpenApiGenSchema
+      const schema = param.schema as SchemaObject
       const variable = this.variable(param.name)
       const type = resolveSchemaType(this, null, schema, param.name)
       return `${variable}: ${type}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
@@ -174,11 +172,11 @@ ${indent}return .requestParameters(parameters: __params, encoding: URLEncoding.d
     return "return .requestPlain"
   }
 
-  fieldDoc(doc: OpenApiGenSchema): string {
+  fieldDoc(doc: SchemaObject): string {
     return `// ${doc}`
   }
 
-  modelDoc(doc: OpenApiGenSchema): string {
+  modelDoc(doc: SchemaObject): string {
     return `// ${doc}`
   }
 

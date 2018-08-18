@@ -4,17 +4,14 @@ import _ from "lodash"
 import { typeResolvers, resolveSchemaType, handlebarsInstance } from "targets"
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ServerObject,
-  ParameterObject,
-  RequestBodyObject
+  ParameterObject
 } from "openapi3-ts"
 import { Operation } from "visitor";
 
@@ -55,7 +52,7 @@ export default class KotlinTarget extends Target {
     return this.cls(name)
   }
 
-  format(schema: OpenApiGenSchema): string | undefined {
+  format(schema: SchemaObject): string | undefined {
     return schema.format || ""
   }
 
@@ -75,12 +72,12 @@ export default class KotlinTarget extends Target {
     return upperSnake(key)
   }
 
-  fieldDoc(schema: OpenApiGenSchema): string | undefined {
+  fieldDoc(schema: SchemaObject): string | undefined {
     // TODO
     return ""
   }
 
-  modelDoc(schema: OpenApiGenSchema): string | undefined {
+  modelDoc(schema: SchemaObject): string | undefined {
     // TODO
     return ""
   }
@@ -136,14 +133,6 @@ export default class KotlinTarget extends Target {
 
     const { requestBody } = route
     if (requestBody != null) {
-      // const requestBody = route.requestBody as RequestBodyObject
-
-      // if (requestBody.content) {
-      //   const content = requestBody.content
-      //   const k = Object.keys(content)[0]
-      //   // tslint:disable-next-line:max-line-length
-      //   x.push(`@Body body: ${resolveSchemaType(this, null, (<OpenApiGenSchema>content[k].schema), bodyName)}`)
-      // }
       x.push(`@Body body: ${resolveSchemaType(this, null, requestBody, bodyName)}`)
     }
 

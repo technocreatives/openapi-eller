@@ -1,52 +1,17 @@
 import { 
-  OpenAPIObject,
   SchemaObject,
-  ComponentsObject,
   SecuritySchemeObject,
   OAuthFlowObject,
-  ReferenceObject,
   SecurityRequirementObject,
   ServerObject
 } from "openapi3-ts"
-import { Operation, GeneratorVisitor } from "visitor";
-
-export interface OpenApiGenTree extends OpenAPIObject {
-  components?: OpenApiGenComponents
-  servers: ServerObject[]
-}
-
-export interface OpenApiGenComponents extends ComponentsObject {
-  schemas?: {
-    [schema: string]: OpenApiGenSchema;
-  }
-  securitySchemes?: {
-    [securityScheme: string]: OpenApiGenSecuritySchemeObject;
-  }
-}
-
-export interface OpenApiGenSchema extends SchemaObject {
-  key: string
-  properties?: {
-    [propertyName: string]: (OpenApiGenSchema | ReferenceObject);
-  }
-  additionalProperties?: (OpenApiGenSchema | ReferenceObject)
-  oneOf?: (OpenApiGenSchema | ReferenceObject)[]
-  items?: OpenApiGenSchema | ReferenceObject
-  hasModelTitle?: boolean
-}
+import { Operation, GeneratorVisitor } from "visitor"
 
 export enum SecuritySchemeType {
   HTTP = "http",
   ApiKey = "apiKey",
   OAuth2 = "oauth2",
   OpenIdConnect = "openIdConnect"
-}
-
-export interface OpenApiGenSecuritySchemeObject extends SecuritySchemeObject {
-  type: SecuritySchemeType
-  flows?: OAuthFlowObject
-  in?: ParameterLocation
-  scheme?: string
 }
 
 export enum ParameterLocation {
@@ -100,7 +65,7 @@ export abstract class Target {
   abstract generate(args: GenerateArguments): { [filename: string]: string }
   abstract operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
   
-  operationParamsDefaults(route: Operation, bodyName: string): string | undefined {
+  operationParamsDefaults(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string | undefined {
     return
   }
   
@@ -144,11 +109,11 @@ export interface TargetObject {
   cls(key: string, isNested?: boolean): string
   enumKey(string: string): string
   oneOfKey(key: string): string
-  modelDoc(schema: OpenApiGenSchema): string
-  fieldDoc(schema: OpenApiGenSchema): string
+  modelDoc(schema: SchemaObject): string
+  fieldDoc(schema: SchemaObject): string
   variable(basename: string): string
   isHashable(type: string): boolean
-  format?(schema: OpenApiGenSchema): string
+  format?(schema: SchemaObject): string
   interface?(baseName: string): string
   enum?(basename: string): string
   operationId(route: SchemaObject): string
@@ -160,7 +125,7 @@ export interface TargetObject {
     values: object;
   }[]
   operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
-  operationParamsDefaults?(route: Operation, bodyName: string): string
+  operationParamsDefaults?(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
   operationArgs?(route: Operation, bodyName: string): string
   operationKwargs?(route: Operation, bodyName: string): string
   requestParams?(route: Operation, bodyName: string): string

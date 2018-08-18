@@ -3,13 +3,9 @@ import {
 } from "openapi3-ts"
 
 import jref from "json-refs"
-import * as yaml from "js-yaml"
-import * as fs from "fs"
-import { 
-  OpenApiGenTree,
+import {
   Target,
   TargetModel,
-  OpenApiGenSchema,
   TargetField,
   EnumObject,
   EnumObjectType,
@@ -969,16 +965,3 @@ export class ModelGenerator {
     return models
   }
 }
-
-// console.log(x.schemas)
-// console.log(x)
-
-
-// const a = yaml.safeLoad(fs.readFileSync("./some.yaml", "utf8"))
-// const x = new GeneratorVisitor(a)
-// x.start()
-// import KotlinTarget from "./targets/kotlin"
-// const y = new ModelGenerator(new KotlinTarget({}), x)
-// console.log(JSON.stringify(
-//   y.generate().models.find(x => x.name === "BasicUserInfo"), null, 2
-// ))

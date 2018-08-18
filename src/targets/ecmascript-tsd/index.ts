@@ -4,21 +4,19 @@ import hbs from "handlebars"
 
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ParameterObject,
   RequestBodyObject,
   ServerObject,
   ReferenceObject
 } from "openapi3-ts"
 import { typeResolvers } from "targets"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
@@ -41,11 +39,11 @@ export default class EcmaScriptTypeScriptDefinitionTarget extends Target {
     return name
   }
 
-  fieldDoc(doc: OpenApiGenSchema): string {
+  fieldDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 
-  modelDoc(doc: OpenApiGenSchema): string {
+  modelDoc(doc: SchemaObject): string {
     return "// " + doc
   }
 
@@ -115,7 +113,7 @@ export default class EcmaScriptTypeScriptDefinitionTarget extends Target {
 
       if (mainMime.endsWith("form-data")) {
         const bodyContent = requestBody.content[mainMime]
-        const schema = bodyContent.schema as OpenApiGenSchema
+        const schema = bodyContent.schema as SchemaObject
 
         if (!schema.properties) {
           throw new Error(`Unexpected structure: Schema properties are mising`)

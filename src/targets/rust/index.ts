@@ -5,14 +5,12 @@ import hbs from "handlebars"
 import { typeResolvers } from "targets"
 import {
   Target,
-  OpenApiGenSchema,
   TargetTypeMap,
   TargetServer,
   GenerateArguments
 } from "types"
 import {
   SchemaObject,
-  OperationObject,
   ServerObject
 } from "openapi3-ts"
 import { Operation } from "visitor";
@@ -43,7 +41,7 @@ export default class RustTarget extends Target {
     return this.cls(string)
   }
 
-  modelDoc(schema: OpenApiGenSchema): string | undefined {
+  modelDoc(schema: SchemaObject): string | undefined {
     if (schema.description == null) {
       return
     }
@@ -51,7 +49,7 @@ export default class RustTarget extends Target {
     return `// ${schema.description}`
   }
 
-  fieldDoc(schema: OpenApiGenSchema): string | undefined {
+  fieldDoc(schema: SchemaObject): string | undefined {
     if (schema.description == null) {
       return
     }
