@@ -447,7 +447,7 @@ export class SchemaContext {
   isTransient: boolean
 
   name(visitor: GeneratorVisitor): string {
-    const thingo = () => {
+    const findName = () => {
       if (this.schema.type === "array") {
         const items = this.schema.items as SchemaObject
         if (items != null && !isComplexType(items) && items.type != null) {
@@ -468,7 +468,7 @@ export class SchemaContext {
       let len = firstPath.length
 
       if (firstPath[len - 1] === "schema") {
-        len--
+        len -= 1
       }
 
       if (firstPath[len - 2] === "parameters") {
@@ -511,7 +511,7 @@ export class SchemaContext {
       return firstPath[len - 1] as string
     }
 
-    const ret = thingo()
+    const ret = findName()
     if (ret === "application/json") {
       throw new Error(pathAsString(this.path))
     }
