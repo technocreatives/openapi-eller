@@ -89,6 +89,19 @@ export abstract class Visitor {
         return candidate as T
     }
 
+    private assertSchema<T>(candidate: SchemaObject, combiner: Combiner | undefined): SchemaObject {
+        if (typeof candidate !== "object") {
+            throw this.error(`An object of type "${typeof candidate}" was found; expected SchemaObject.`)
+        }
+
+        // Check for null type except when any/one/allOf fields aren't null
+        if (combiner == null && candidate.type == null && !(candidate.oneOf != null || candidate.allOf != null || candidate.anyOf != null)) {
+            throw this.error(`Schema lacks a "type" field which is required for code generation.`)
+        }
+
+        return candidate
+    }
+
     abstract visitInfo(info: InfoObject): void
     abstract visitParameter(pathKey: string, httpVerb: string | null, parameter: ParameterObject): void
     abstract visitSchema(schema: SchemaObject, parentSchema: SchemaObject | null, combiner: Combiner | null): void
@@ -126,7 +139,7 @@ export abstract class Visitor {
     }
 
     walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined, combiner: Combiner | undefined) {
-      const { anyOf, oneOf, allOf, properties, items, additionalProperties } = schema
+      const { anyOf, oneOf, allOf, properties, items, additionalProperties } = this.assertSchema(schema, combiner)
 
       // if (schema.type === "array") {
       //   console.error(schema)
@@ -451,7 +464,7 @@ export class SchemaContext {
       if (this.schema.type === "array") {
         const items = this.schema.items as SchemaObject
         if (items != null && !isComplexType(items) && items.type != null) {
-          return items.type 
+          return items.type
         }
         const child = this.children.values().next()
         if (child == null || child.value == null) {
