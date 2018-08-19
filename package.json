@@ -1,6 +1,6 @@
 {
   "name": "openapi-eller",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Generate OpenAPI v3 clients and servers from the command line",
   "main": "dist/index.js",
   "bin": {
