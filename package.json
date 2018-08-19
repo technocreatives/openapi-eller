@@ -1,7 +1,7 @@
 {
   "name": "openapi-eller",
   "version": "0.3.0",
-  "description": "",
+  "description": "Generate OpenAPI v3 clients and servers from the command line",
   "main": "dist/index.js",
   "bin": {
     "openapi-eller": "dist/openapi-eller"
@@ -20,7 +20,7 @@
     "clean": "rm -rf build && rm -rf dist",
     "test": "tsc -p tests && ava tests"
   },
-  "author": "",
+  "author": "Brendan Molloy <brendan@bbqsrc.net>",
   "license": "ISC",
   "dependencies": {
     "@types/object-path": "^0.9.29",
