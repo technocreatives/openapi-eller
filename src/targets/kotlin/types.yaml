@@ -19,7 +19,9 @@ number:
 boolean:
   null: Boolean
 array: "List<{value}>"
-map: "Map<{key}, {value}>"
+map:
+  null: "Map<{key}, {value}>"
+  ordered-map: "LinkedHashMap<{key}, {value}>"
 set: "Set<{value}>"
 null: Unit
 object:

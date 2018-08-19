@@ -19,7 +19,8 @@ number:
 boolean:
   null: Boolean
 array: "{value}[]"
-map: "{ [key: {key}]: {value} }"
+map:
+  null: "{ [key: {key}]: {value} }"
 # set: "Set<{value}>"
 set: "{value}[]"
 null: void

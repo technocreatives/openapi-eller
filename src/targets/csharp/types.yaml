@@ -19,7 +19,8 @@ number:
 boolean:
   null: bool
 array: "List<{value}>"
-map: "Dictionary<{key}, {value}>"
+map:
+  null: "Dictionary<{key}, {value}>"
 set: "Set<{value}>"
 null: void
 object:

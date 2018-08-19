@@ -20,7 +20,8 @@ number:
 boolean:
   null: Bool
 array: "[{value}]"
-map: "[{key}: {value}]"
+map:
+  null: "[{key}: {value}]"
 set: "Set<{value}>"
 null: Void
 object:

@@ -151,7 +151,9 @@ function resolveTypeImpl(
       false
     )
     
-    candidate = types.map
+    const mapType = types.map[format || "null"] || types.map.null
+    
+    candidate = mapType
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
   } else if (propertySchema && propertySchema.key) {

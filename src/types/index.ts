@@ -249,7 +249,7 @@ export interface TargetTypeMap {
   number: TargetFormatMap
   boolean: TargetFormatMap
   array: string
-  map: string
+  map: TargetFormatMap
   set: string
   null: string
   [typeKey: string]: TargetFormatMap | string
