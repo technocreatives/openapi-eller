@@ -112,13 +112,14 @@ export async function generateArgumentsFromTarget(
 
   const models = modelGenerator.generate() //generateModels(tree, target)
   const groups = generateEndpoints(target)
+  const { servers } = visitor.tree
 
   const data = {
     config,
     groups,
     models,
     security: generateSecuritySchemes(target),
-    servers: target.servers(visitor.tree.servers as ServerObject[]),
+    servers: servers != null ? target.servers(servers) : [],
     name: target.cls(visitor.tree.info.title)
   }
 
