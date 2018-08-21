@@ -100,9 +100,10 @@ class {{{name}}}OAuth(val clientId: String, val redirectUri: Uri) {
     
     enum class Scope(override val value: String): JsonEnum {
 {{#each scopes}}
-        {{{name}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
+        {{{name}}}("{{{value}}}"),
 {{/each}}
-
+        OPENID("openid"),
+        PROFILE("profile");
         override fun toString() = value
     }
 
