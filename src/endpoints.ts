@@ -101,7 +101,7 @@ export function generateEndpoints(
       ? target.cls(requestBodyContext.name(visitor))
       : `${target.cls(operationId)}Body`
     const anonymousResponseName = responseSchemaContext != null
-      ? target.cls(responseSchemaContext.name(visitor))
+      ? responseSchemaContext.name(visitor)
       : null
 
     const schemaType = resolveSchemaType(target, responseSchemaContext || null, responseSchema || null, anonymousResponseName)
