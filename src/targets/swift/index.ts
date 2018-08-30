@@ -58,13 +58,13 @@ export default class SwiftTarget extends Target {
 
   cls(name: string, isNested?: boolean | undefined): string {
     const { prefix } = this.config
-    const newName = `${prefix || ""}${upperCamel(name)}`
+    let newName = upperCamel(name)
 
     if (reservedWords.includes(newName)) {
-      return newName + "_"
+      newName += "_"
     }
 
-    return newName
+    return `${prefix || ""}${newName}`
   }
 
   enumKey(key: string): string { return this.variable(key) }

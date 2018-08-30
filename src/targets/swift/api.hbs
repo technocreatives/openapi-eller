@@ -2,6 +2,7 @@ import Foundation
 import Moya
 import AppAuth
 import RxSwift
+import Unbox
 
 // Generated. Do not edit.
 
@@ -77,14 +78,14 @@ public class {{{name}}}OAuth {
 {{/each}}
     }
 
-    public class OAuthInterceptor: {{{../name}}}Interceptor {
+    public class OAuthInterceptor: {{@root.config.prefix}}Interceptor {
         let authState: OIDAuthState
         
         init(authState: OIDAuthState) {
             self.authState = authState
         }
         
-        public func intercept(request: {{{../name}}}InterceptorResult) -> Single<{{{../name}}}InterceptorResult> {
+        public func intercept(request: {{@root.config.prefix}}InterceptorResult) -> Single<{{@root.config.prefix}}InterceptorResult> {
             return Single.create(subscribe: { emitter in
                 self.authState.performAction(freshTokens: { (accessToken, idToken, error) in
                     if let error = error {
@@ -92,7 +93,7 @@ public class {{{name}}}OAuth {
                     } else if let token = accessToken {
                         var newHeaders = request.headers
                         newHeaders["Authorization"] = "Bearer \(token)"
-                        let newResult = {{{../name}}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters)
+                        let newResult = {{@root.config.prefix}}InterceptorResult(headers: newHeaders, queryParameters: request.queryParameters)
                         emitter(.success(newResult))
                     }
                 })
@@ -348,7 +349,7 @@ public class {{{name}}}Service {
 {{! MODELS }}
 {{#each models}}
 {{#if isEnum}}
-public enum {{{name}}}: String, Codable {
+public enum {{{name}}}: String, Codable, UnboxableEnum {
 {{#each values}}
     case {{{key}}} = "{{{value}}}"
 {{/each}}
@@ -402,14 +403,14 @@ public struct {{{name}}}: Hashable, Codable {
 
 {{#each enums}}
 {{#if isEnum}}
-    public enum {{{name}}}: String, Codable {
+    public enum {{{name}}}: String, Codable, UnboxableEnum {
 {{#each values}}
         case {{{key}}}{{#if value}} = "{{{value}}}"{{/if}}
 {{/each}}
     }
 {{/if}}
 {{#if isOneOf}}
-    public enum {{{name}}}: Hashable, Codable {
+    public enum {{{name}}}: Hashable, Codable, UnboxableEnum {
 {{#each values}}
         case {{{key}}}({{{type}}})
 {{/each}}
@@ -487,6 +488,14 @@ public struct {{{name}}}: Hashable, Codable {
 
 {{/unless}}
 {{/each}}
+}
+
+extension {{{name}}}: Unboxable {
+    public init(unboxer: Unboxer) throws {
+{{#each fields}}
+        self.{{{name}}} = try unboxer.unbox(key: "{{{key}}}")
+{{/each}}
+    }
 }
 {{/if}}
 
