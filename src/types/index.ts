@@ -184,7 +184,6 @@ export interface TargetModel {
 export interface TargetField {
   name: string
   type: string
-  rawType: string
   key: string
   fields: TargetFieldMap
   doc: string | undefined
