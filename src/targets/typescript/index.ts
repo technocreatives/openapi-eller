@@ -18,7 +18,7 @@ import {
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "targets"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
@@ -91,7 +91,7 @@ export default class TypeScriptTarget extends Target {
     }
     return `${url}/`
   }
-  
+
   // security(items) {
   //   return items.map((x) => {
   //     const prop = Object.keys(x)[0]
@@ -101,7 +101,7 @@ export default class TypeScriptTarget extends Target {
   //     }
   //   })
   // },
-  
+
   requestParams(route: Operation): string {
     let x: string[] = []
 
@@ -126,7 +126,7 @@ export default class TypeScriptTarget extends Target {
           throw new Error(`Unexpected structure: Schema properties are mising`)
         }
         // TODO: this should be consistent across platforms
-        
+
         const lines = Object.keys(requestBody.properties).map((key) => {
           const v = this.variable(key)
 
@@ -137,7 +137,7 @@ export default class TypeScriptTarget extends Target {
           return `if (${v} != null) {
             __formData.append("${key}", body.${v})
           }`
-          
+
         }).join("\n")
 
         x.push(`
@@ -218,4 +218,3 @@ export default class TypeScriptTarget extends Target {
     return { "Generated.ts": apiTmpl(args) }
   }
 }
-

@@ -13,7 +13,7 @@ import {
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = handlebarsInstance(`${__dirname}/api.hbs`, `${__dirname}/partials`)
 const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
@@ -164,7 +164,7 @@ export default class KotlinTarget extends Target {
   }
 
   returnType(type: string): string {
-    if (type == "Unit") {
+    if (type === "Unit") {
       return "Completable"
     }
 

@@ -14,16 +14,16 @@ import {
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
 const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
 
-// Identifiers begin with an uppercase or lowercase letter A through Z, 
-// an underscore (_), a noncombining alphanumeric Unicode character 
-// in the Basic Multilingual Plane, or a character outside the Basic 
-// Multilingual Plane that isn’t in a Private Use Area. 
+// Identifiers begin with an uppercase or lowercase letter A through Z,
+// an underscore (_), a noncombining alphanumeric Unicode character
+// in the Basic Multilingual Plane, or a character outside the Basic
+// Multilingual Plane that isn’t in a Private Use Area.
 // After the first character, digits and combining Unicode characters are also allowed.
 // const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -34,7 +34,7 @@ export default class SwiftTarget extends Target {
 
   variable(n: string): string {
     const name = n.toString()
-    
+
     if (/^\d+$/.test(name)) {
       if (name === "0") {
         return "zero"
@@ -42,7 +42,7 @@ export default class SwiftTarget extends Target {
       if (name === "1") {
         return "one"
       }
-      
+
       return _.camelCase(name)
     }
 
@@ -52,7 +52,7 @@ export default class SwiftTarget extends Target {
     if (reservedWords.indexOf(newName) > -1) {
       return hasAt ? "_" + newName : newName + "_"
     }
-   
+
     return hasAt ? "_" + newName : newName
   }
 
@@ -95,7 +95,7 @@ export default class SwiftTarget extends Target {
   }
 
   private operationParamsImpl(route: Operation,
-      bodyName: string, 
+      bodyName: string,
       hasDefaults: boolean = false): string {
     if (!route.parameters) {
       return ""
@@ -107,7 +107,7 @@ export default class SwiftTarget extends Target {
       const type = resolveSchemaType(this, null, schema, param.name)
       return `${variable}: ${type}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
     })
-    
+
     if (x.length === 0) {
       return ""
     }
@@ -143,7 +143,7 @@ export default class SwiftTarget extends Target {
     }
     return `(${x.map(xx => `${xx}: ${xx}`).join(", ")})`
   }
-  
+
   requestParams(route: Operation, bodyName: string): string | undefined {
     // Generate query params
     const indent = "            "
@@ -160,7 +160,7 @@ export default class SwiftTarget extends Target {
 
       return `__params["${param.name}"] = ${this.variable(param.name)}`
     }).filter(x => x != null)
-    
+
     if (q.length > 0) {
       return `
 ${indent}var __params = [String: Any]()

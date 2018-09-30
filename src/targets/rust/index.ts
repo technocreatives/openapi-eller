@@ -13,7 +13,7 @@ import {
   SchemaObject,
   ServerObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 const reservedWords = fs.readFileSync(`${__dirname}/reserved-words.txt`, "utf8")
@@ -25,7 +25,7 @@ export default class RustTarget extends Target {
 
   cls(key: string, isNested?: boolean | undefined): string {
     const candidate = _.upperFirst(_.camelCase(key))
-    
+
     if (reservedWords.includes(candidate)) {
       return `${candidate}_`
     }
@@ -53,13 +53,13 @@ export default class RustTarget extends Target {
     if (schema.description == null) {
       return
     }
-    
+
     return `// ${schema.description}`
   }
 
   variable(basename: string): string {
     const candidate = _.snakeCase(basename)
-    
+
     if (reservedWords.includes(candidate)) {
       return `${candidate}_`
     }

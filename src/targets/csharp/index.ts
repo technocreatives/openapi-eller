@@ -14,7 +14,7 @@ import {
   ServerObject,
   ParameterObject
 } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 const titleCamel = (x: string) => _.upperFirst(_.camelCase(x))
@@ -79,7 +79,7 @@ export default class CSharpTarget extends Target {
       if (ks === "1") {
         return "One"
       }
-      
+
       return this.cls("_" + key)
     }
     return this.cls(key)
@@ -158,4 +158,3 @@ export default class CSharpTarget extends Target {
     }))
   }
 }
-

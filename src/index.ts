@@ -2,21 +2,18 @@ import yaml from "js-yaml"
 import fs from "fs"
 import _ from "lodash"
 import {
-  SecuritySchemeType, 
-  Target, 
-  ParameterLocation, 
+  SecuritySchemeType,
+  Target,
+  ParameterLocation,
   SecuritySchemeObjectScheme,
   TargetSecuritySchemes,
   ConfigObject,
   GenerateArguments
 } from "./types"
-import {
-  ServerObject
-} from "openapi3-ts"
 
 import { generateEndpoints } from "./endpoints"
 import { resolveTarget } from "./targets"
-import { GeneratorVisitor, ModelGenerator } from "visitor";
+import { GeneratorVisitor, ModelGenerator } from "visitor"
 // import logger from "winston"
 
 function generateSecuritySchemes(
@@ -33,7 +30,7 @@ function generateSecuritySchemes(
     if (!tree || !tree.components || !tree.components.securitySchemes) {
       return
     }
-    
+
     const securitySchemeObject = tree.components.securitySchemes[k]
     const { type } = securitySchemeObject
 
@@ -79,15 +76,15 @@ function generateSecuritySchemes(
       security.push({
         name: target.cls(k),
         isHttp: true,
-        isBasic: securitySchemeObject.scheme 
-          ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Basic 
+        isBasic: securitySchemeObject.scheme
+          ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Basic
           : false,
         isDigest: securitySchemeObject.scheme
           ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Digest
           : false,
         isBearer: securitySchemeObject.scheme
           ? securitySchemeObject.scheme.toLowerCase() === SecuritySchemeObjectScheme.Bearer
-          : false,
+          : false
         // TODO: security schemes might be functoins
       })
     } else {
@@ -110,7 +107,7 @@ export async function generateArgumentsFromTarget(
 
   const modelGenerator = new ModelGenerator(target, visitor)
 
-  const models = modelGenerator.generate() //generateModels(tree, target)
+  const models = modelGenerator.generate() // generateModels(tree, target)
   const groups = generateEndpoints(target)
   const { servers } = visitor.tree
 

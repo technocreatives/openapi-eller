@@ -12,9 +12,9 @@ import AspNetTarget from "./csharp-aspnet"
 import SwiftTarget from "./swift"
 import RustTarget from "./rust"
 import KotlinTarget from "./kotlin"
-import { SchemaContext } from "visitor";
-import { SchemaObject } from "openapi3-ts";
-import TypeScriptTarget from "./typescript";
+import { SchemaContext } from "visitor"
+import { SchemaObject } from "openapi3-ts"
+import TypeScriptTarget from "./typescript"
 
 // Re-export the targets
 export {
@@ -30,20 +30,20 @@ export const knownTargets = [
 
 export function resolveTarget(targetName: string): typeof Target | null {
   switch (targetName.toLowerCase()) {
-    case "kotlin":
-      return KotlinTarget
-    case "swift":
-      return SwiftTarget
-    case "rust":
-      return RustTarget
-    case "aspnet":
-    case "csharp-aspnet":
-      return AspNetTarget
-    case "ts":
-    case "typescript":
-      return TypeScriptTarget
-    default:
-      return null
+  case "kotlin":
+    return KotlinTarget
+  case "swift":
+    return SwiftTarget
+  case "rust":
+    return RustTarget
+  case "aspnet":
+  case "csharp-aspnet":
+    return AspNetTarget
+  case "ts":
+  case "typescript":
+    return TypeScriptTarget
+  default:
+    return null
   }
 }
 
@@ -65,14 +65,14 @@ export function handlebarsInstance(tmplPath: string, partialsDir: string): Templ
     const partialBody = fs.readFileSync(path.join(partialsDir, partialFilename), "utf8")
     instance.registerPartial(partialFilename.split(".").slice(0, -1).join("."), instance.compile(partialBody))
   }
-  
+
   return instance.compile(fs.readFileSync(tmplPath, "utf8"))
 }
 
 export function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
   const targetTypeMapFilePath = fs.readFileSync(`${__dirname}/${target}/types.yaml`, "utf8")
   const types = yaml.safeLoad(targetTypeMapFilePath) as TargetTypeMap
-  
+
   if (additionalResolvers) {
     Object.keys(additionalResolvers).reduce((additionalTypes, typeKey) => {
       additionalTypes[typeKey] = Object.keys(additionalResolvers[typeKey])
@@ -102,10 +102,10 @@ export function resolveType(
   context: SchemaContext | null,
   schema: SchemaObject,
   key: string,
-  name: string, 
+  name: string,
   prop: SchemaObject
 ) {
-  const isOptional = schema.required 
+  const isOptional = schema.required
     ? schema.required.indexOf(key) < 0
     : true
 
@@ -115,9 +115,9 @@ export function resolveType(
 function resolveTypeImpl(
   target: Target,
   context: SchemaContext | null,
-  schema: SchemaObject | null, 
-  key: string | null, 
-  name: string | null, 
+  schema: SchemaObject | null,
+  key: string | null,
+  name: string | null,
   propertySchema: SchemaObject | null,
   isOptional: boolean
 ): string {
@@ -131,12 +131,12 @@ function resolveTypeImpl(
     type = propertySchema.type
     format = propertySchema.format
   }
-  
+
   const renames = config && config.renames || {}
   const userTypes = config && config.types || {}
-  
+
   let candidate
-  
+
   // Format is required here, otherwise additionalProperties loops badly.
   if (type === "object" && propertySchema != null && propertySchema.additionalProperties) {
     const additionalPropsSchema = propertySchema.additionalProperties
@@ -144,15 +144,15 @@ function resolveTypeImpl(
     const value = resolveTypeImpl(
       target,
       childCtx,
-      schema, 
+      schema,
       null,
       childCtx != null && !childCtx.isTransient ? childCtx.name(target.visitor) : null,
       additionalPropsSchema,
       false
     )
-    
+
     const mapType = types.map[format || "null"] || types.map.null
-    
+
     candidate = mapType
       .replace("{key}", types["string"][format || "null"] || types["string"]["null"])
       .replace("{value}", value)
@@ -173,7 +173,7 @@ function resolveTypeImpl(
       // TODO: add propertySchema's context as well
       throw new Error("Unhandled enum naming for " + JSON.stringify(propertySchema))
     }
-    
+
   } else if (propertySchema && propertySchema.oneOf && name) {
     // Treat this as a very special enum :)
     candidate = target.interface(name) || target.cls(name)
@@ -183,13 +183,13 @@ function resolveTypeImpl(
     const items = propertySchema.items as SchemaObject
 
     const propertySchemaCtx = visitor.schemas.get(propertySchema)
-    const itemsName = propertySchemaCtx != null && !propertySchemaCtx.isTransient 
+    const itemsName = propertySchemaCtx != null && !propertySchemaCtx.isTransient
       ? propertySchemaCtx.name(visitor)
       : name
 
     // TODO: add support for Set<V>
     candidate = types.array.replace(
-      "{value}", 
+      "{value}",
       resolveTypeImpl(target, context, schema, itemsName, itemsName, items, false)
     )
   } else if (name !== null && ((type === "object" && format == null) || type == null)) {
@@ -207,8 +207,8 @@ function resolveTypeImpl(
         throw new Error(`Could not handle input: ${type} ${format} for ${JSON.stringify(propertySchema)}, ${JSON.stringify(schema)}`)
       }
 
-      candidate = candidateUserType[format || "null"] || 
-        candidateType[format || "null"] || 
+      candidate = candidateUserType[format || "null"] ||
+        candidateType[format || "null"] ||
         candidateType["null"]
     } catch (e) {
       console.error(e.stack)

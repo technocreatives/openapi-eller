@@ -6,7 +6,7 @@ import CSharpTarget from "../csharp"
 import { resolveSchemaType } from "targets"
 import { GenerateArguments } from "types"
 import { ParameterObject, RequestBodyObject, SchemaObject } from "openapi3-ts"
-import { Operation } from "visitor";
+import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
 
@@ -27,14 +27,14 @@ export default class AspNetTarget extends CSharpTarget {
 
   operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []
-    
+
     if (route.parameters) {
       const params = route.parameters as ParameterObject[]
       x = params.map((p) => {
         const type = resolveSchemaType(this, null, (<SchemaObject>p.schema), p.name)
-        
-        const hasQMark = type === "DateTime" 
-          || (type !== "string" && type.toLowerCase() === type) 
+
+        const hasQMark = type === "DateTime"
+          || (type !== "string" && type.toLowerCase() === type)
           || (<SchemaObject>p.schema).enum
 
         const suffix = p.required ? "" : " = null"

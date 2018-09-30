@@ -10,11 +10,11 @@ import {
 } from "openapi3-ts"
 
 import { resolveSchemaType } from "./targets"
-import { SchemaContext, isComplexType } from "visitor";
+import { SchemaContext, isComplexType } from "visitor"
 
 function findResponseSchema(responses: ResponsesObject): SchemaObject | undefined {
   const successResponse: ResponseObject = find(
-    responses, 
+    responses,
     (responseObject: ResponseObject, statusCode) => {
       const statusCodeInt = parseInt(statusCode, 10)
 
@@ -24,7 +24,7 @@ function findResponseSchema(responses: ResponsesObject): SchemaObject | undefine
 
       return statusCodeInt >= 200 && statusCodeInt <= 299
     })
-  
+
   if (!successResponse || !successResponse.content) {
     return
   }
@@ -42,10 +42,10 @@ export function generateEndpoints(
   const { visitor, config } = target
   const isGroupingEnabled = config.useGroups || false
   const groups: {[groupName: string]: TargetEndpointsGroup} = {}
-  
+
   for (const operationId in visitor.operations) {
     const operationObject = visitor.operations[operationId]
-    
+
     if (config && config.include) {
       if (!operationObject.tags) {
         continue
@@ -61,7 +61,7 @@ export function generateEndpoints(
     const group = isGroupingEnabled && operationObject.tags
       ? target.cls(operationObject.tags[0])
       : ""
-    
+
     if (!operationObject.responses) {
       throw new Error(`No responses field found for ${JSON.stringify(operationObject)}`)
     }
@@ -74,11 +74,11 @@ export function generateEndpoints(
 
       if (r != null) {
         const rc = visitor.schemas.get(r)
-        
+
         if (rc == null) {
           throw new Error("Found response schema but could not find response context")
         }
-        
+
         responseSchema = r
         responseSchemaContext = rc
       }
@@ -104,7 +104,10 @@ export function generateEndpoints(
       ? responseSchemaContext.name(visitor)
       : null
 
-    const schemaType = resolveSchemaType(target, responseSchemaContext || null, responseSchema || null, anonymousResponseName)
+    const schemaType = resolveSchemaType(target,
+        responseSchemaContext || null,
+        responseSchema || null,
+        anonymousResponseName)
     const returnType = target.returnType(schemaType)
 
     if (!groups[group]) {
@@ -123,7 +126,7 @@ export function generateEndpoints(
         const ctx = visitor.schemas.get(schema)
         if (ctx == null) {
           console.log(schema)
-          throw new Error('wat')
+          throw new Error("wat")
         }
         acc[param.name] = ctx.name(visitor)
       }

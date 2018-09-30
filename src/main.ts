@@ -27,7 +27,7 @@ async function generateFromPath(
   }
 
   const files = target.generate(args)
-  
+
   for (const fn in files) {
     const nfn = path.join(absOutputPath, fn)
     mkdirpSync(path.dirname(nfn))
