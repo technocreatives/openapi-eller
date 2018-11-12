@@ -1,0 +1,40 @@
+openapi: "3.0.0"
+info:
+ title: "Test Thing"
+servers:
+paths:
+ "/test":
+  parameters:
+    - name: parameterEnum
+      in: query
+      schema:
+        type: string
+        enum:
+          - yay
+          - nope
+  get:
+   parameters:
+    - name: anotherParameterEnum
+      in: query
+      schema:
+        type: string
+        enum:
+          - yay
+          - nope
+   operationId: testOperation
+   responses:
+      "200":
+        description: Success
+components:
+ schemas:
+  TopLevelObject:
+   type: object
+   properties:
+    nestedField:
+     type: object
+     properties:
+      deeperNestedField:
+       type: object
+       properties:
+        foo:
+         type: string

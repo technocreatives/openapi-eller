@@ -1,74 +1,16 @@
 import test from "ava"
-import { loadTarget, generateArgumentsFromTree } from "../dist/index"
+import path from "path"
+import { loadTarget, generateArgumentsFromTarget } from "index"
 
-const testTree = {
-  openapi: "3.0.0",
-  info: { title: "Test Thing" },
-  servers: [],
-  paths: {
-    "/test": {
-      parameters: [
-        {
-          name: "parameterEnum",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["yay", "nope"]
-          }
-        }
-      ],
-      get: {
-        parameters: [
-          {
-            name: "anotherParameterEnum",
-            in: "query",
-            schema: {
-              type: "string",
-              enum: ["yay", "nope"]
-            }
-          }
-        ],
-        operationId: "testOperation",
-        responses: {}
-      }
-    }
-  },
-  components: {
-    schemas: {
-      TopLevelObject: {
-        type: "object",
-        properties: {
-          nestedField: {
-            type: "object",
-            properties: {
-              deeperNestedField: {
-                type: "object",
-                properties: {
-                  foo: {
-                    type: "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-const target = loadTarget("kotlin", {})
-
-test.beforeEach(async t => {
-  t.context = { args: await generateArgumentsFromTree(target, testTree as any, {}) }
+test.beforeEach(async (t) => {
+  const target = await loadTarget("kotlin", path.join(__dirname, "nested-field-test-schema.yml"), {})
+  t.context = { args: await generateArgumentsFromTarget(target) }
 })
 
-test("Nested fields generate correctly", t => {
+test("Nested fields generate correctly", (t) => {
   const { args } = t.context
   const generatedModels = Object.keys(args.models)
-  console.error(args.models.TopLevelObject.fields)
   generatedModels.sort()
-  console.error(generatedModels)
   t.deepEqual(generatedModels, [
     "TopLevelObject",
     "TopLevelObject_nestedField",
