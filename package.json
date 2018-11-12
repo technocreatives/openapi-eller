@@ -2,23 +2,19 @@
   "name": "openapi-eller",
   "version": "0.3.1",
   "description": "Generate OpenAPI v3 clients and servers from the command line",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "bin": {
-    "openapi-eller": "dist/openapi-eller"
+    "openapi-eller": "dist/main.js"
   },
   "scripts": {
     "prepublishOnly": "npm run clean && npm run build",
-    "createBuildFolders": "mkdirp build/targets",
-    "copyJs": "cp -a src/targets/. build/targets/",
-    "transpile": "tsc && babel build -d dist/ --copy-files",
-    "prepareBin": "mv dist/main.js dist/openapi-eller && chmod +x dist/openapi-eller",
-    "build": "npm run createBuildFolders && npm run copyJs && npm run transpile && npm run prepareBin",
-    "ybuild": "yarn run createBuildFolders && yarn run copyJs && yarn run transpile && yarn run prepareBin",
-    "msbuild": "npm run createBuildFolders && npm run copyJSW && npm run transpile && npm run prepareBinW",
-    "copyJSW": "xcopy /E /Q /Y src\\targets\\* build\\targets\\",
-    "prepareBinW": "move dist\\main.js dist\\openapi-eller",
-    "clean": "rm -rf build && rm -rf dist",
-    "test": "tsc -p tests && ava tests"
+    "transpile": "babel src -d dist/ --extensions=\".ts\" --copy-files",
+    "build": "npm run transpile",
+    "ybuild": "yarn run transpile",
+    "msbuild": "npm run transpile",
+    "clean": "rm -rf dist && rm-rf tests-dist",
+    "test": "tsc -p tests && ava tests",
+    "tst": "babel tests -d tests-dist --extensions=\".ts\" --copy-files && ava tests-dist"
   },
   "author": "Brendan Molloy <brendan@bbqsrc.net>",
   "license": "ISC",
@@ -35,9 +31,12 @@
     "winston": "^2.4.2"
   },
   "devDependencies": {
-    "@babel/cli": "^7.0.0-beta.44",
-    "@babel/core": "^7.0.0-beta.44",
-    "@babel/preset-env": "^7.0.0-beta.44",
+    "@babel/cli": "^7.1.2",
+    "@babel/core": "^7.1.2",
+    "@babel/plugin-proposal-class-properties": "^7.1.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
+    "@babel/preset-env": "^7.1.0",
+    "@babel/preset-typescript": "^7.1.0",
     "@types/handlebars": "^4.0.37",
     "@types/js-yaml": "^3.11.1",
     "@types/lodash": "^4.14.106",

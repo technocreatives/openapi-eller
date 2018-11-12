@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es2016",
+        "target": "es6",
         "module": "es6",
         "moduleResolution": "node",
         "baseUrl": "src",
@@ -8,19 +8,16 @@
         "allowSyntheticDefaultImports": true,
         "noImplicitAny": true,
         "declaration": true,
-        "outDir": "build",
         "strict": true,
-        "types": [
-            "node"
-        ],
         "typeRoots": [
-            "./node_modules/@types",
+            "../node_modules/@types",
             "./types"
-        ]
-        // "noUnusedLocals": true,
+        ],
+        "esModuleInterop": true,
+        "pretty": true
     },
     "include": [
-        "src/**/*",
+        "src"
     ],
     "exclude": [
         "dist",
