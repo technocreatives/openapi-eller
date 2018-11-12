@@ -13,7 +13,7 @@ import {
 
 import { generateEndpoints } from "./endpoints"
 import { resolveTarget } from "./targets"
-import { GeneratorVisitor, ModelGenerator } from "visitor"
+import { GeneratorVisitor, ModelGenerator } from "./visitor"
 // import logger from "winston"
 
 function generateSecuritySchemes(
@@ -142,7 +142,9 @@ export function loadConfig(configPath: string | undefined): ConfigObject {
 export async function loadTarget(targetName: string, yamlPath: string, config: ConfigObject): Promise<Target> {
   const unparsedTree = yaml.safeLoad(fs.readFileSync(yamlPath, "utf8"))
   const visitor = await GeneratorVisitor.create(unparsedTree)
-  const targetClass = resolveTarget(targetName) as (new (visitor: GeneratorVisitor, config: ConfigObject) => Target) | null
+
+  type TargetClass = new (visitor: GeneratorVisitor, config: ConfigObject) => Target
+  const targetClass = resolveTarget(targetName) as TargetClass | null
   if (targetClass == null) {
     throw new Error(`No target found for name: ${targetName}`)
   }
