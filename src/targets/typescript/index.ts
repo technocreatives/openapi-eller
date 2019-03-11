@@ -2,7 +2,7 @@ import fs from "fs"
 import _ from "lodash"
 import hbs from "handlebars"
 
-import { typeResolvers } from "targets"
+import { typeResolvers, resolveSchemaType } from "targets"
 
 import {
   Target,
@@ -13,11 +13,9 @@ import {
 import {
   SchemaObject,
   ParameterObject,
-  ServerObject,
-  ReferenceObject
+  ServerObject
 } from "openapi3-ts"
 
-import { resolveSchemaType } from "targets"
 import { Operation } from "visitor"
 
 const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
@@ -153,9 +151,9 @@ export default class TypeScriptTarget extends Target {
     return x.join("\n    ")
   }
 
-  private isParameterObject(p: ParameterObject | ReferenceObject): p is ParameterObject {
-    return typeof (p as any).$ref === "undefined"
-  }
+//   private isParameterObject(p: ParameterObject | ReferenceObject): p is ParameterObject {
+//     return typeof (p as any).$ref === "undefined"
+//   }
 
   operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string {
     let x: string[] = []

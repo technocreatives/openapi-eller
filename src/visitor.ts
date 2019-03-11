@@ -1,5 +1,18 @@
 import {
-  OpenAPIObject, InfoObject, PathObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, SchemaObject, RequestBodyObject, ExampleObject, ComponentsObject, ServerObject, ResponsesObject, ResponseObject
+  OpenAPIObject,
+  InfoObject,
+  PathObject,
+  OperationObject,
+  ParameterObject,
+  PathItemObject,
+  ReferenceObject,
+  SchemaObject,
+  RequestBodyObject,
+  ExampleObject,
+  ComponentsObject,
+  ServerObject,
+  ResponsesObject,
+  ResponseObject
 } from "openapi3-ts"
 
 import jref from "json-refs"
@@ -94,7 +107,8 @@ export abstract class Visitor {
       throw this.error(`An object of type "${typeof candidate}" was found; expected SchemaObject.`)
     }
 
-        // Check for null type except when any/one/allOf fields aren't null
+    // Check for null type except when any/one/allOf fields aren't null
+    // tslint:disable-next-line:max-line-length
     if (combiner == null && candidate.type == null && !(candidate.oneOf != null || candidate.allOf != null || candidate.anyOf != null)) {
       throw this.error(`Schema lacks a "type" field which is required for code generation.`)
     }
@@ -105,7 +119,13 @@ export abstract class Visitor {
   abstract visitInfo(info: InfoObject): void
   abstract visitParameter(pathKey: string, httpVerb: string | null, parameter: ParameterObject): void
   abstract visitSchema(schema: SchemaObject, parentSchema: SchemaObject | null, combiner: Combiner | null): void
-  abstract visitOperation(operationId: string, summary: string | undefined, description: string | undefined, tags: string[] | undefined, responses: ResponsesObject): void
+  abstract visitOperation(
+    operationId: string,
+    summary: string | undefined,
+    description: string | undefined,
+    tags: string[] | undefined,
+    responses: ResponsesObject
+  ): void
   abstract visitOperationRequestBody(operationId: string, mediaType: string, schema: SchemaObject): any
   abstract visitRequestBodyExample(example: ExampleObject): void
   abstract visitResponseExample(example: ExampleObject): void
@@ -138,7 +158,8 @@ export abstract class Visitor {
     }
   }
 
-  walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined, combiner: Combiner | undefined) {
+  // tslint:disable-next-line:max-line-length
+  walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined = undefined, combiner: Combiner | undefined = undefined) {
     const { anyOf, oneOf, allOf, properties, items, additionalProperties } = this.assertSchema(schema, combiner)
 
     // if (schema.type === "array") {
@@ -530,6 +551,7 @@ export class SchemaContext {
     return ret
   }
 
+  // tslint:disable-next-line:max-line-length
   constructor(schema: SchemaObject, path: (string | number)[], combiner: Combiner | null = null, isTransient: boolean = false) {
     this.schema = schema
     this.path = path
@@ -643,7 +665,7 @@ export class GeneratorVisitor extends Visitor {
     const httpVerb = this.position() as string
     const pathKey = this.position(1) as string
     const key = `${pathKey}.${httpVerb}`
-    
+
     // tslint:disable-next-line:no-this-assignment
     const self = this
 
@@ -758,6 +780,7 @@ export class ModelGenerator {
     }
   }
 
+  // tslint:disable-next-line:max-line-length
   private processFields(ctx: SchemaContext, schema: SchemaObject, properties: { [key: string]: SchemaObject }): TargetFieldMap {
     return Object.keys(properties).reduce((acc: TargetFieldMap, key: string) => {
       const propertySchema = properties[key]

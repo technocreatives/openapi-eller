@@ -89,7 +89,12 @@ export function typeResolvers(target: string, additionalResolvers?: TargetTypeMa
   return types
 }
 
-export function resolveSchemaType(target: Target, context: SchemaContext | null, schema: SchemaObject | null, name: string | null) {
+export function resolveSchemaType(
+  target: Target,
+  context: SchemaContext | null,
+  schema: SchemaObject | null,
+  name: string | null
+) {
   if (schema == null) {
     return resolveTypeImpl(target, null, null, null, null, null, false)
   }
