@@ -155,7 +155,7 @@ fileprivate class {{@root.config.prefix}}MoyaConfigurableProvider<T: TargetType>
                 interceptors: [{{@root.config.prefix}}Interceptor],
                 headers: [String: String] = [:],
                 queryParameters: [String: String] = [:],
-                requestClosure: @escaping RequestClosure = MoyaProvider.defaultRequestMapping,
+                requestClosure: @escaping RequestClosure = MoyaProvider<T>.defaultRequestMapping,
                 stubClosure: @escaping StubClosure = MoyaProvider.neverStub,
                 callbackQueue: DispatchQueue? = nil,
                 manager: Manager = MoyaProvider<Target>.defaultAlamofireManager(),
