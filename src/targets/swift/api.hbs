@@ -1,3 +1,34 @@
+// Requirements
+//
+// You need to install the following libs:
+// - AppAuth
+// - RxSwift
+// - Moya/RxSwift (ver 11)
+// - Unbox
+// 
+// Use
+//
+// You need to initialize a service with a server (however you named your server - e.g. staging).
+// let service = YourPrefixService.init(server: YourPrefixServer.stagingServer)
+// 
+// The service object will have methdos with all the possible requests, depending on how you
+// named them in their respective operationIds. After that you chain a subscribe() call.
+// The subscribe method has different variants but the simplest one is the one that takes only
+// one closure. The closure looks like this:
+//
+// (result) in
+//      switch result {
+//      case .success(let r):
+//          // Do stuff
+//      case .error(let e):
+//          // Do stuff
+//      }
+//  }
+//
+// And then don't forget to properly dispose your subscription.
+// To get a brief intro into using Moya/RxSwift you can check their 
+// docs at https://github.com/Moya/Moya/blob/master/docs/RxSwift.md
+
 import Foundation
 import Moya
 import AppAuth
