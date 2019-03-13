@@ -11,7 +11,12 @@
         "@babel/proposal-class-properties",
         "@babel/proposal-object-rest-spread",
         ["module-resolver", {
-            "root": ["./dist"]
+            "root": ["./dist"],
+            "alias": {
+                "targets": "./src/targets",
+                "types": "./src/types",
+                "visitor": "./src/visitor"
+            }
         }]
     ]
 }
