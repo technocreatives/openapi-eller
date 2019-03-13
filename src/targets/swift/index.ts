@@ -100,6 +100,7 @@ export default class SwiftTarget extends Target {
     if (!route.parameters) {
       return ""
     }
+
     const x = route.parameters.map((p) => {
       const param = p as ParameterObject
       const schema = param.schema as SchemaObject
@@ -107,6 +108,10 @@ export default class SwiftTarget extends Target {
       const type = resolveSchemaType(this, null, schema, param.name)
       return `${variable}: ${type}${param.required ? "" : `?${hasDefaults ? " = nil" : ""}`}`
     })
+
+    if (route.requestBody) {
+      x.push(`body: ${bodyName}`)
+    }
 
     if (x.length === 0) {
       return ""
@@ -127,6 +132,12 @@ export default class SwiftTarget extends Target {
       return ""
     }
     const x = route.parameters.map(p => this.variable((<ParameterObject>p).name))
+
+    const { requestBody } = route
+    if (requestBody) {
+      x.push("body")
+    }
+
     if (x.length === 0) {
       return ""
     }
@@ -138,6 +149,10 @@ export default class SwiftTarget extends Target {
       return ""
     }
     const x = route.parameters.map(p => this.variable((<ParameterObject>p).name))
+    const { requestBody } = route
+    if (requestBody) {
+      x.push("body")
+    }
     if (x.length === 0) {
       return ""
     }
@@ -166,6 +181,12 @@ export default class SwiftTarget extends Target {
 ${indent}var __params = [String: Any]()
 ${indent}${q.join("\n" + indent)}
 ${indent}return .requestParameters(parameters: __params, encoding: URLEncoding.default)
+`.trim()
+    }
+
+    if (route.requestBody) {
+      return `
+${indent}return .requestJSONEncodable(body)
 `.trim()
     }
 

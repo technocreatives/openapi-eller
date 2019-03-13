@@ -1,3 +1,16 @@
+/**
+* The following dependencies should be added to your build.gradle module file:
+* 
+* implementation "com.squareup.retrofit2:converter-gson:2.3.+"
+* implementation "io.reactivex.rxjava2:rxandroid:2.1.+"
+* implementation "com.squareup.retrofit2:adapter-rxjava2:2.3.+"
+*
+* If you use OpenID, you need to add 'maven { url 'https://jitpack.io' }',
+* to allprojects.repositories to you build.gradle project file.
+* You also need to add 'implementation 'com.github.lenguyenthanh:AppAuth-Android:ea77a09f3e''
+* as a dependency to your build.gradle module file.
+*/
+
 @file:Suppress("MoveLambdaOutsideParentheses")
 
 {{#if config.package}}

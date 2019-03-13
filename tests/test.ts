@@ -8,14 +8,9 @@ test.beforeEach(async (t) => {
 })
 
 test("Nested fields generate correctly", (t) => {
-  const { args } = t.context
-  const generatedModels = Object.keys(args.models)
-  generatedModels.sort()
-  t.deepEqual(generatedModels, [
-    "TopLevelObject",
-    "TopLevelObject_nestedField",
-    "TopLevelObject_deeperNestedField",
-    "testOperation_anotherParameterEnum",
-    "testOperation_parameterEnum"
-  ])
+  const { args } = t.context as {[key: string]: any}
+
+  t.truthy(args.models.TopLevelObject.fields.nestedField.fields.deeperNestedField)
+  t.truthy(args.models.parameterEnum)
+  t.truthy(args.models["testOperation.anotherParameterEnum"])
 })

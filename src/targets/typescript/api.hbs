@@ -133,7 +133,7 @@ function resolveBody(service: Neofit, key: string, args: IArguments) {
     const index = Reflect.getMetadata(Symbols.body, service, key)
     
     if (index != null) {
-        return args[index]
+        return args[index.index]
     }
 }
 
@@ -163,10 +163,19 @@ abstract class Neofit {
     private async [neofitSymbol]<T>(key: string, args: IArguments): Promise<T> {
         const absoluteUrl: URL = resolveUrl(this, key, args)
         const method = resolveVerb(this, key)
-        const body = resolveBody(this, key, args)
-
         const requestBodyType = resolveRequestBodyType(this, key)
         const responseBodyType = resolveResponseBodyType(this, key)
+
+        const body = ((body) => {
+            switch (requestBodyType) {
+                case BodyType.JSON:
+                case BodyType.Text:
+                    return JSON.stringify(body)
+                default:
+                    return body
+            }
+        })(resolveBody(this, key, args))
+
         const headers = resolveHeaders(this, key, args, requestBodyType)
         const requestInit: RequestInit = {
             method,
@@ -287,6 +296,9 @@ export enum {{{name}}} {
 }
 {{else}}
 export class {{{name}}} {
+{{#each fields}}
+    {{{name}}}: {{{type}}}
+{{/each}}
 {{!-- {{#each fields}}
 {{#unless isNameEqualToKey}}
     @JsonProperty("{{{key}}}")

@@ -63,7 +63,11 @@ export abstract class Target {
   abstract generate(args: GenerateArguments): { [filename: string]: string }
   abstract operationParams(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string
 
-  operationParamsDefaults(route: Operation, bodyName: string, paramNames: { [key: string]: string }): string | undefined {
+  operationParamsDefaults(
+    route: Operation,
+    bodyName: string,
+    paramNames: { [key: string]: string }
+  ): string | undefined {
     return
   }
 
