@@ -37,7 +37,7 @@ async function generateFromPath(
 
 program
   .name("openapi-eller")
-  .version("0.3.1")
+  .version("0.3.3")
   // tslint:disable-next-line:max-line-length
   .description(`Generate API clients and servers for OpenAPI v3 specifications.\n\n` +
                `  Available targets: ${knownTargets.join(", ")}`)

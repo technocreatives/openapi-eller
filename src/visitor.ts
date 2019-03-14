@@ -102,7 +102,17 @@ export abstract class Visitor {
     return candidate as T
   }
 
-  private assertSchema<T>(candidate: SchemaObject, combiner: Combiner | undefined): SchemaObject {
+  private isEmpty(obj: Object): boolean {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        return false
+      }
+    }
+    return true
+  }
+
+  // tslint:disable-next-line:max-line-length
+  private assertSchema<T>(candidate: SchemaObject, combiner: Combiner | undefined, parentSchema: SchemaObject | undefined): SchemaObject {
     if (typeof candidate !== "object") {
       throw this.error(`An object of type "${typeof candidate}" was found; expected SchemaObject.`)
     }
@@ -110,7 +120,12 @@ export abstract class Visitor {
     // Check for null type except when any/one/allOf fields aren't null
     // tslint:disable-next-line:max-line-length
     if (combiner == null && candidate.type == null && !(candidate.oneOf != null || candidate.allOf != null || candidate.anyOf != null)) {
-      throw this.error(`Schema lacks a "type" field which is required for code generation.`)
+      if (!this.isEmpty(candidate)) {
+        throw this.error(`Schema lacks a "type" field which is required for code generation.`)
+      }
+
+      candidate.type = "object"
+      candidate.format = "any"
     }
 
     return candidate
@@ -160,7 +175,14 @@ export abstract class Visitor {
 
   // tslint:disable-next-line:max-line-length
   walkSchema(schema: SchemaObject, parentSchema: SchemaObject | undefined = undefined, combiner: Combiner | undefined = undefined) {
-    const { anyOf, oneOf, allOf, properties, items, additionalProperties } = this.assertSchema(schema, combiner)
+    const {
+      anyOf,
+      oneOf,
+      allOf,
+      properties,
+      items,
+      additionalProperties
+    } = this.assertSchema(schema, combiner, parentSchema)
 
     // if (schema.type === "array") {
     //   console.error(schema)
@@ -898,7 +920,22 @@ export class ModelGenerator {
       return this.processAllOf(ctx, schema)
     }
 
-    const { properties } = schema
+    const { properties, required } = schema
+
+    if (required) {
+      if (!properties) {
+        throw new Error(`Schema lacks properties while it has required ones specified: ${ctx.path.join("/")}`)
+      }
+
+      const requiredNotFound = required.filter((requiredProperty) => {
+        return typeof properties[requiredProperty] === "undefined"
+      })
+
+      if (requiredNotFound.length > 0) {
+        // tslint:disable-next-line:max-line-length
+        throw new Error(`Schema ${ctx.path.join("/")} has required properties which are not defined: ${requiredNotFound.join(", ")}`)
+      }
+    }
 
     if (properties == null) {
       return {}
@@ -963,7 +1000,7 @@ export class ModelGenerator {
       return {}
     }
 
-    if (schema.type === "object") {
+    if (schema.type === "object" || ctx.combiner) {
       return this.processModelObject(ctx, schema)
     }
 
