@@ -920,7 +920,22 @@ export class ModelGenerator {
       return this.processAllOf(ctx, schema)
     }
 
-    const { properties } = schema
+    const { properties, required } = schema
+
+    if (required) {
+      if (!properties) {
+        throw new Error(`Schema lacks properties while it has required ones specified: ${ctx.path.join("/")}`)
+      }
+
+      const requiredNotFound = required.filter((requiredProperty) => {
+        return typeof properties[requiredProperty] === "undefined"
+      })
+
+      if (requiredNotFound.length > 0) {
+        // tslint:disable-next-line:max-line-length
+        throw new Error(`Schema ${ctx.path.join("/")} has required properties which are not defined: ${requiredNotFound.join(", ")}`)
+      }
+    }
 
     if (properties == null) {
       return {}
