@@ -2,6 +2,8 @@
   <img width="256" height="256" src="https://user-images.githubusercontent.com/279099/39677264-396f9568-5178-11e8-9afc-b845fdd2218f.png" alt="Eller logo"/>
 </p>
 
+[![Build Status](https://travis-ci.org/technocreatives/openapi-eller.svg?branch=master)](https://travis-ci.org/technocreatives/openapi-eller)
+
 # OpenAPI Generator, eller?
 
 Generate OpenAPI v3 clients and servers from the command line with nothing more
