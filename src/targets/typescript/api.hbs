@@ -151,6 +151,11 @@ function resolveResponseBodyType(service: Neofit, key: string): BodyType {
 
 type Interceptor = (url: URL, req: RequestInit) => Promise<void>
 
+type Resp<T> = {
+    status: number,
+    body: T,
+}
+
 abstract class Neofit {
     private [baseUrlSymbol]: URL
     private [interceptorSymbol]: Interceptor[]
@@ -160,7 +165,7 @@ abstract class Neofit {
         this[interceptorSymbol] = interceptors
     }
 
-    private async [neofitSymbol]<T>(key: string, args: IArguments): Promise<T> {
+    private async [neofitSymbol]<T>(key: string, args: IArguments): Promise<Resp<T>> {
         const absoluteUrl: URL = resolveUrl(this, key, args)
         const method = resolveVerb(this, key)
         const requestBodyType = resolveRequestBodyType(this, key)
@@ -205,7 +210,10 @@ abstract class Neofit {
 
         try {
             const body = await responseBody
-            return body
+            return {
+                body,
+                status: response.status
+            }
         } catch (err) {
             err.response = response
             throw err
