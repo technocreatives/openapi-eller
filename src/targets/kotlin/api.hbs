@@ -261,7 +261,7 @@ private fun createGson(): Gson {
 
         override fun read(reader: JsonReader): T {
             val s = reader.nextString()
-            return type::class.java.enumConstants.first { it.value == s }
+            return type::class.java.enumConstants?.first { it.value == s }
                 ?: throw Exception("Invalid value: $s")
         }
     }
@@ -269,6 +269,7 @@ private fun createGson(): Gson {
     class DateAdapter(format: String) : TypeAdapter<Date>() {
         private val formatter = when (format) {
             "date" -> createDateFormatter("yyyy-MM-dd", "UTC")
+            "date-time" -> createDateFormatter("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "UTC")
             else -> createDateFormatter("yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC")
         }
 
@@ -369,6 +370,7 @@ data class {{{name}}}(
 {{#if isEnum}}
     enum class {{{name}}}(override val value: String): JsonEnum {
 {{#each values}}
+        @SerializedName("{{{value}}}")
         {{{key}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
 {{/each}}
 

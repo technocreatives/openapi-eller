@@ -1,6 +1,6 @@
 {
   "name": "openapi-eller",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Generate OpenAPI v3 clients and servers from the command line",
   "main": "dist/main.js",
   "bin": {
@@ -18,10 +18,10 @@
   "dependencies": {
     "@types/object-path": "^0.9.29",
     "commander": "^2.15.1",
-    "handlebars": "^4.1.0",
-    "js-yaml": "^3.10.0",
+    "handlebars": "^4.5.3",
+    "js-yaml": "^3.13.1",
     "json-refs": "^3.0.6",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "mkdirp": "^0.5.1",
     "object-path": "^0.11.4",
     "whatwg-url": "^6.4.0",

@@ -5,6 +5,27 @@ file you can pass to the generator.
 Configuration files are JSON or YAML files matching the relevant key-value
 pairs.
 
+=== Kotlin
+
+==== Target aliases
+
+- kotlin
+
+==== Configuration options
+
+- `package` (_string_): when available name the package
+- `imports` (_string[]_): a list of imports
+
+=== Swift
+
+==== Target aliases
+
+- swift
+
+==== Configuration options
+
+- `prefix` (_string_): an optional prefix to the names of classes, structs, enums, etc
+
 === TypeScript
 
 ==== Target aliases
@@ -12,6 +33,6 @@ pairs.
 - typescript
 - ts
 
-==== Configuration
+==== Configuration options
 
-`dev` (boolean): when true, will generate development imports and functions.
+- `dev` (_boolean_): when true, will generate development imports and functions.
