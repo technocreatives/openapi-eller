@@ -9,7 +9,7 @@
   "scripts": {
     "prepublishOnly": "npm run clean && npm run build",
     "transpile": "babel src -d dist/ --extensions=\".ts\" --copy-files",
-    "build": "npm run transpile",
+    "build": "npm run lint && npm run transpile",
     "clean": "rm -rf dist && rm -rf tests-dist",
     "test": "babel tests -d tests-dist --extensions=\".ts\" --copy-files && ava tests-dist",
     "lint": "tslint -c tslint.json -p tsconfig.json"
