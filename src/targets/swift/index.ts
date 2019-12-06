@@ -16,9 +16,9 @@ import {
 } from "openapi3-ts"
 import { Operation } from "visitor"
 
-const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
+const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
-const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
+const reservedWords = fs.readFileSync(`${__dirname}/reserved-words.txt`, "utf8").trim().split("\n")
 
 // Identifiers begin with an uppercase or lowercase letter A through Z,
 // an underscore (_), a noncombining alphanumeric Unicode character
@@ -50,10 +50,10 @@ export default class SwiftTarget extends Target {
     const newName = _.camelCase(name)
 
     if (reservedWords.indexOf(newName) > -1) {
-      return hasAt ? "_" + newName : newName + "_"
+      return hasAt ? `_${newName}` : `${newName}_`
     }
 
-    return hasAt ? "_" + newName : newName
+    return hasAt ? `_${newName}` : newName
   }
 
   cls(name: string, isNested?: boolean | undefined): string {
@@ -179,7 +179,7 @@ export default class SwiftTarget extends Target {
     if (q.length > 0) {
       return `
 ${indent}var __params = [String: Any]()
-${indent}${q.join("\n" + indent)}
+${indent}${q.join(`\n${indent}`)}
 ${indent}return .requestParameters(parameters: __params, encoding: URLEncoding.default)
 `.trim()
     }
@@ -223,7 +223,7 @@ ${indent}return .requestJSONEncodable(body)
         return `let ${this.variable(k)}`
       }).join(",\n        "),
       parameters: _.map(x.variables, (v, k) => {
-        return `${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `${this.variable(k)}: String${v.default === "" ? "" : ` = ${v.default}`}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {

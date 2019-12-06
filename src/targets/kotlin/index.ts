@@ -16,7 +16,7 @@ import {
 import { Operation } from "visitor"
 
 const apiTmpl = handlebarsInstance(`${__dirname}/api.hbs`, `${__dirname}/partials`)
-const reservedWords = fs.readFileSync(__dirname + "/reserved-words.txt", "utf8").trim().split("\n")
+const reservedWords = fs.readFileSync(`${__dirname}/reserved-words.txt`, "utf8").trim().split("\n")
 
 const validIdentifiers = /^[A-Za-z_][A-Za-z0-9_]*$/
 const upperSnake = _.flow([_.snakeCase, _.upperCase, x => x.replace(/\s/g, "_")])
@@ -39,9 +39,9 @@ export default class KotlinTarget extends Target {
 
     const newName = _.flow([_.camelCase, _.upperFirst])(name)
     if (reservedWords.indexOf(newName) > -1) {
-      return `\`${hasAt ? "@" + newName : newName}\``
+      return `\`${hasAt ? `@${newName}` : newName}\``
     }
-    return hasAt ? "_" + newName : newName
+    return hasAt ? `_${newName}` : newName
   }
 
   interface(name: string): string {
@@ -57,6 +57,7 @@ export default class KotlinTarget extends Target {
   }
 
   enumKey(key: string): string {
+    // tslint:disable-next-line: prefer-template
     const ks = "" + key
     if (/^\d+/.test(ks)) {
       if (ks === "0") {
@@ -177,7 +178,7 @@ export default class KotlinTarget extends Target {
       description: this.cls(x.description || `default${i}`),
       variables: _.map(x.variables, (v, k) => {
         // tslint:disable-next-line:max-line-length
-        return `val ${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `val ${this.variable(k)}: String${v.default === "" ? "" : ` = ${v.default}`}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {

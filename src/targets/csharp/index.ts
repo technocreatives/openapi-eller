@@ -16,7 +16,7 @@ import {
 } from "openapi3-ts"
 import { Operation } from "visitor"
 
-const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
+const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 const titleCamel = (x: string) => _.upperFirst(_.camelCase(x))
 
 function genComment(indent: number, content: string): string {
@@ -54,9 +54,9 @@ export default class CSharpTarget extends Target {
 
     const newName = titleCamel(name)
     if (reservedWords.indexOf(newName) > -1) {
-      candidate = `\`${hasAt ? "@" + newName : newName}\``
+      candidate = `\`${hasAt ? `@${newName}` : newName}\``
     } else {
-      candidate = hasAt ? "_" + newName : newName
+      candidate = hasAt ? `_${newName}` : newName
     }
 
     return isNested ? `${candidate}Type` : candidate
@@ -71,6 +71,7 @@ export default class CSharpTarget extends Target {
   }
 
   enumKey(key: string): string {
+    // tslint:disable-next-line: prefer-template
     const ks = "" + key
     if (/^\d+$/.test(ks)) {
       if (ks === "0") {
@@ -80,7 +81,7 @@ export default class CSharpTarget extends Target {
         return "One"
       }
 
-      return this.cls("_" + key)
+      return this.cls(`_${key}`)
     }
     return this.cls(key)
   }
@@ -147,7 +148,7 @@ export default class CSharpTarget extends Target {
       description: this.cls(x.description || `default${i}`),
       variables: _.map(x.variables, (v, k) => {
         // tslint:disable-next-line:max-line-length
-        return `val ${this.variable(k)}: String${v.default === "" ? "" : " = " + v.default}`
+        return `val ${this.variable(k)}: String${v.default === "" ? "" : ` = ${v.default}`}`
       }).join(",\n        "),
       replacements: _.map(x.variables, (v, k) => {
         return {

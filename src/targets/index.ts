@@ -176,7 +176,7 @@ function resolveTypeImpl(
       candidate = target.enum(name)
     } else {
       // TODO: add propertySchema's context as well
-      throw new Error("Unhandled enum naming for " + JSON.stringify(propertySchema))
+      throw new Error(`Unhandled enum naming for ${JSON.stringify(propertySchema)}`)
     }
 
   } else if (propertySchema && propertySchema.oneOf && name) {

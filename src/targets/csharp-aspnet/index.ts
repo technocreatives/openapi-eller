@@ -8,7 +8,7 @@ import { GenerateArguments } from "types"
 import { ParameterObject, RequestBodyObject, SchemaObject } from "openapi3-ts"
 import { Operation } from "visitor"
 
-const apiTmpl = hbs.compile(fs.readFileSync(__dirname + "/api.hbs", "utf8"))
+const apiTmpl = hbs.compile(fs.readFileSync(`${__dirname}/api.hbs`, "utf8"))
 
 export default class AspNetTarget extends CSharpTarget {
   generate(args: GenerateArguments) {
