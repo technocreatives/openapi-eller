@@ -261,7 +261,7 @@ private fun createGson(): Gson {
 
         override fun read(reader: JsonReader): T {
             val s = reader.nextString()
-            return type::class.java.enumConstants.first { it.value == s }
+            return type::class.java.enumConstants?.first { it.value == s }
                 ?: throw Exception("Invalid value: $s")
         }
     }
@@ -370,6 +370,7 @@ data class {{{name}}}(
 {{#if isEnum}}
     enum class {{{name}}}(override val value: String): JsonEnum {
 {{#each values}}
+        @SerializedName("{{{value}}}")
         {{{key}}}("{{{value}}}"){{#unless @last}},{{else}};{{/unless}}
 {{/each}}
 
