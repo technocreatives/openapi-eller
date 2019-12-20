@@ -2,7 +2,9 @@
   <img width="256" height="256" src="https://user-images.githubusercontent.com/279099/39677264-396f9568-5178-11e8-9afc-b845fdd2218f.png" alt="Eller logo"/>
 </p>
 
-[![Build Status](https://travis-ci.org/technocreatives/openapi-eller.svg?branch=master)](https://travis-ci.org/technocreatives/openapi-eller)
+[![Actions Status](https://github.com/technocreatives/openapi-eller/workflows/nodejs-build/badge.svg)](https://github.com/technocreatives/openapi-eller/actions)
+
+[![NPM version](https://img.shields.io/npm/v/openapi-eller.svg?style=flat)](https://www.npmjs.org/package/openapi-eller)
 
 # OpenAPI Generator, eller?
 
