@@ -4,3 +4,4 @@ dist
 tests/*.js
 tests-dist
 output/
+debug.json
