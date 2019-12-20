@@ -1,0 +1,32 @@
+---
+openapi: 3.0.0
+info:
+  title: Example required fields test API spec
+  version: 0.0.1
+servers:
+  - url: "http://example.com"
+paths:
+  "/test":
+    get:
+      tags:
+        - test
+      operationId: testOperation
+      description: test operation description
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Foo"
+components:
+  schemas:
+    Foo:
+      type: object
+      required:
+        - bar
+      properties:
+        anything:
+          type: boolean
+        bar:
+          type: string
