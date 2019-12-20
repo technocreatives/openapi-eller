@@ -47,7 +47,7 @@ for those targets listed as supported. Behaviour is subject to change between va
 
 - Clients:
   - Kotlin (Android)
-  - Swift
+  - Swift (iOS)
   - TypeScript
 - Servers:
   - ASP.NET (MVC Framework 4.5)
