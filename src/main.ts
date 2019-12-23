@@ -5,8 +5,8 @@ import path from "path"
 import program from "commander"
 import { sync as mkdirpSync } from "mkdirp"
 
-import { loadConfig, loadTarget, generateArgumentsFromTarget } from "./index"
-import { knownTargets } from "./targets"
+import { loadConfig, loadTarget, generateArgumentsFromTarget } from "index"
+import { knownTargets } from "targets"
 
 async function generateFromPath(
   targetName: string,

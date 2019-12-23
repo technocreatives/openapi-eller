@@ -9,7 +9,7 @@ import {
   SchemaObject
 } from "openapi3-ts"
 
-import { resolveSchemaType } from "./targets"
+import { resolveSchemaType } from "targets"
 import { SchemaContext, isComplexType } from "visitor"
 
 function findResponseSchema(responses: ResponsesObject): SchemaObject | undefined {

@@ -10,23 +10,16 @@ import AspNetTarget from "./csharp-aspnet"
 import SwiftTarget from "./swift"
 import RustTarget from "./rust"
 import KotlinTarget from "./kotlin"
-import { SchemaContext } from "visitor"
-import { SchemaObject } from "openapi3-ts"
 import TypeScriptTarget from "./typescript"
+import { SchemaContext } from "../visitor"
+import { SchemaObject } from "openapi3-ts"
+import { isRef } from "../helpers"
 
-// Re-export the targets
-export {
-  KotlinTarget,
-  SwiftTarget,
-  AspNetTarget,
-  RustTarget
-}
-
-export const knownTargets = [
+const knownTargets = [
   "csharp-aspnet", "kotlin", "rust", "swift", "typescript"
 ]
 
-export function resolveTarget(targetName: string): typeof Target | null {
+function resolveTarget(targetName: string): typeof Target | null {
   switch (targetName.toLowerCase()) {
   case "kotlin":
     return KotlinTarget
@@ -65,7 +58,7 @@ function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): Tar
   return types
 }
 
-export function resolveSchemaType(
+function resolveSchemaType(
   target: Target,
   context: SchemaContext | null,
   schema: SchemaObject | null,
@@ -78,7 +71,7 @@ export function resolveSchemaType(
   return resolveTypeImpl(target, context, schema, name, name, schema, false)
 }
 
-export function resolveType(
+function resolveType(
   target: Target,
   context: SchemaContext | null,
   schema: SchemaObject,
@@ -121,6 +114,10 @@ function resolveTypeImpl(
   // Format is required here, otherwise additionalProperties loops badly.
   if (type === "object" && propertySchema != null && propertySchema.additionalProperties) {
     const additionalPropsSchema = propertySchema.additionalProperties
+    if (typeof additionalPropsSchema === "boolean" || isRef(additionalPropsSchema)) {
+      throw new Error("Unresolved reference in aditional props schema")
+    }
+
     const childCtx = visitor.schemas.get(additionalPropsSchema) || null
     const value = resolveTypeImpl(
       target,
@@ -212,4 +209,18 @@ function resolveTypeImpl(
   }
 
   return candidate
+}
+
+// Re-export the targets
+export {
+  AspNetTarget,
+  KotlinTarget,
+  RustTarget,
+  SwiftTarget,
+  TypeScriptTarget,
+  resolveType,
+  resolveSchemaType,
+  typeResolvers,
+  resolveTarget,
+  knownTargets,
 }
