@@ -6,14 +6,14 @@ import {
   TargetFormatMap
 } from "types"
 
-import AspNetTarget from "./csharp-aspnet"
-import SwiftTarget from "./swift"
-import RustTarget from "./rust"
-import KotlinTarget from "./kotlin"
-import TypeScriptTarget from "./typescript"
-import { SchemaContext } from "../visitor"
+import AspNetTarget from "targets/csharp-aspnet"
+import SwiftTarget from "targets/swift"
+import RustTarget from "targets/rust"
+import KotlinTarget from "targets/kotlin"
+import TypeScriptTarget from "targets/typescript"
+import { SchemaContext } from "visitor"
 import { SchemaObject } from "openapi3-ts"
-import { isRef } from "../helpers"
+import { isRef } from "helpers"
 
 const knownTargets = [
   "csharp-aspnet", "kotlin", "rust", "swift", "typescript"
