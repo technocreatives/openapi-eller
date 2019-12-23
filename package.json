@@ -17,7 +17,6 @@
   "author": "Brendan Molloy <brendan@bbqsrc.net>",
   "license": "ISC",
   "dependencies": {
-    "@types/object-path": "^0.9.29",
     "commander": "^2.20.3",
     "handlebars": "^4.5.3",
     "js-yaml": "^3.13.1",
@@ -29,19 +28,12 @@
     "winston": "^2.4.4"
   },
   "devDependencies": {
-    "@babel/cli": "^7.7.5",
-    "@babel/core": "^7.7.5",
-    "@babel/plugin-proposal-class-properties": "^7.7.4",
-    "@babel/plugin-proposal-object-rest-spread": "^7.7.4",
-    "@babel/preset-env": "^7.7.5",
-    "@babel/preset-typescript": "^7.7.4",
     "@types/handlebars": "^4.1.0",
     "@types/js-yaml": "^3.12.1",
     "@types/lodash": "^4.14.149",
     "@types/node": "^9.6.55",
     "@types/winston": "^2.4.4",
     "ava": "^1.4.1",
-    "babel-plugin-module-resolver": "^3.2.0",
     "openapi3-ts": "^0.9.0",
     "tslint": "^5.20.1",
     "tslint-config-airbnb": "^5.11.2",
