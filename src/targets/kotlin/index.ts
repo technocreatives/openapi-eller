@@ -1,7 +1,8 @@
 import fs from "fs"
 import _ from "lodash"
 
-import { typeResolvers, resolveSchemaType, handlebarsInstance } from "targets"
+import { typeResolvers, resolveSchemaType } from "targets"
+import { handlebarsInstance } from "targets/helpers"
 import {
   Target,
   TargetTypeMap,

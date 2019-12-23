@@ -2,7 +2,7 @@ import fs from "fs"
 import _ from "lodash"
 import hbs from "handlebars"
 
-import CSharpTarget from "../csharp"
+import CSharpTarget from "targets/csharp"
 import { resolveSchemaType } from "targets"
 import { GenerateArguments } from "types"
 import { ParameterObject, RequestBodyObject, SchemaObject } from "openapi3-ts"

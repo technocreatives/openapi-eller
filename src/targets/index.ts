@@ -5,30 +5,21 @@ import {
   TargetTypeMap,
   TargetFormatMap
 } from "types"
-import hbs, { TemplateDelegate, HelperOptions } from "handlebars"
-import path from "path"
 
-import AspNetTarget from "./csharp-aspnet"
-import SwiftTarget from "./swift"
-import RustTarget from "./rust"
-import KotlinTarget from "./kotlin"
+import AspNetTarget from "targets/csharp-aspnet"
+import SwiftTarget from "targets/swift"
+import RustTarget from "targets/rust"
+import KotlinTarget from "targets/kotlin"
+import TypeScriptTarget from "targets/typescript"
 import { SchemaContext } from "visitor"
 import { SchemaObject } from "openapi3-ts"
-import TypeScriptTarget from "./typescript"
+import { isRef } from "helpers"
 
-// Re-export the targets
-export {
-  KotlinTarget,
-  SwiftTarget,
-  AspNetTarget,
-  RustTarget
-}
-
-export const knownTargets = [
+const knownTargets = [
   "csharp-aspnet", "kotlin", "rust", "swift", "typescript"
 ]
 
-export function resolveTarget(targetName: string): typeof Target | null {
+function resolveTarget(targetName: string): typeof Target | null {
   switch (targetName.toLowerCase()) {
   case "kotlin":
     return KotlinTarget
@@ -47,29 +38,7 @@ export function resolveTarget(targetName: string): typeof Target | null {
   }
 }
 
-export function handlebarsInstance(tmplPath: string, partialsDir: string): TemplateDelegate {
-  const instance = hbs.create()
-
-  instance.registerHelper("indent", function indent(this: any, options: HelperOptions) {
-    const hash = options.hash || { size: 4 }
-    const padding = Array((hash.size || 4) + 1).join(" ")
-    const content = options.fn(this)
-    return content.split("\n").map(s => `${padding}${s}`.trimRight()).join("\n")
-  })
-
-  for (const partialFilename of fs.readdirSync(partialsDir)) {
-    if (!partialFilename.endsWith(".hbs")) {
-      continue
-    }
-
-    const partialBody = fs.readFileSync(path.join(partialsDir, partialFilename), "utf8")
-    instance.registerPartial(partialFilename.split(".").slice(0, -1).join("."), instance.compile(partialBody))
-  }
-
-  return instance.compile(fs.readFileSync(tmplPath, "utf8"))
-}
-
-export function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
+function typeResolvers(target: string, additionalResolvers?: TargetTypeMap): TargetTypeMap {
   const targetTypeMapFilePath = fs.readFileSync(`${__dirname}/${target}/types.yaml`, "utf8")
   const types = yaml.safeLoad(targetTypeMapFilePath) as TargetTypeMap
 
@@ -89,7 +58,7 @@ export function typeResolvers(target: string, additionalResolvers?: TargetTypeMa
   return types
 }
 
-export function resolveSchemaType(
+function resolveSchemaType(
   target: Target,
   context: SchemaContext | null,
   schema: SchemaObject | null,
@@ -102,7 +71,7 @@ export function resolveSchemaType(
   return resolveTypeImpl(target, context, schema, name, name, schema, false)
 }
 
-export function resolveType(
+function resolveType(
   target: Target,
   context: SchemaContext | null,
   schema: SchemaObject,
@@ -145,6 +114,10 @@ function resolveTypeImpl(
   // Format is required here, otherwise additionalProperties loops badly.
   if (type === "object" && propertySchema != null && propertySchema.additionalProperties) {
     const additionalPropsSchema = propertySchema.additionalProperties
+    if (typeof additionalPropsSchema === "boolean" || isRef(additionalPropsSchema)) {
+      throw new Error("Unresolved reference in aditional props schema")
+    }
+
     const childCtx = visitor.schemas.get(additionalPropsSchema) || null
     const value = resolveTypeImpl(
       target,
@@ -236,4 +209,18 @@ function resolveTypeImpl(
   }
 
   return candidate
+}
+
+// Re-export the targets
+export {
+  AspNetTarget,
+  KotlinTarget,
+  RustTarget,
+  SwiftTarget,
+  TypeScriptTarget,
+  resolveType,
+  resolveSchemaType,
+  typeResolvers,
+  resolveTarget,
+  knownTargets,
 }
