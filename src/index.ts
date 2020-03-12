@@ -9,12 +9,13 @@ import {
   TargetSecuritySchemes,
   ConfigObject,
   GenerateArguments
-} from "./types"
+} from "types"
 
-import { generateEndpoints } from "./endpoints"
-import { resolveTarget } from "./targets"
-import { GeneratorVisitor, ModelGenerator } from "./visitor"
+import { generateEndpoints } from "endpoints"
+import { resolveTarget } from "targets"
+import { GeneratorVisitor, ModelGenerator } from "visitor"
 // import logger from "winston"
+import { isRef } from "helpers"
 
 function generateSecuritySchemes(
   target: Target
@@ -32,6 +33,9 @@ function generateSecuritySchemes(
     }
 
     const securitySchemeObject = tree.components.securitySchemes[k]
+    if (isRef(securitySchemeObject)) {
+      throw new Error("Unresolved reference object in security schemes")
+    }
     const { type } = securitySchemeObject
 
     if (type === SecuritySchemeType.OAuth2 || type === SecuritySchemeType.OpenIdConnect) {

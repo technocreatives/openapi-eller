@@ -1,27 +1,25 @@
 {
-    "compilerOptions": {
-        "target": "es2016",
-        "module": "es6",
-        "moduleResolution": "node",
-        "baseUrl": "src",
-        "strictNullChecks": true,
-        "allowSyntheticDefaultImports": true,
-        "noImplicitAny": true,
-        "declaration": true,
-        "strict": true,
-        "typeRoots": [
-            "../node_modules/@types",
-            "./types"
-        ],
-        "esModuleInterop": true,
-        "pretty": true
-    },
-    "include": [
-        "src"
-    ],
-    "exclude": [
-        "dist",
-        "tests",
-        "node_modules",
-    ]
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "es2019",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "baseUrl": "src",
+    "paths": { "*": ["*"] },
+    "rootDir": "src",
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "typeRoots": ["../node_modules/@types", "src/types"],
+    // "noUnusedLocals": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "pretty": true,
+    "emitDecoratorMetadata": true,
+    "sourceMap": true
+  },
+  "include": ["src"],
+  "exclude": ["dist", "tests", "node_modules"]
 }

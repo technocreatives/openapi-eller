@@ -1,0 +1,35 @@
+---
+openapi: 3.0.0
+info:
+  title: Example discriminator field API spec
+  version: 0.0.1
+servers:
+  - url: "http://example.com"
+paths:
+  /tagged:
+    get:
+      operationId: get_tagged
+      description: Endpoint to retrieve a single tagged interface.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tagged"
+components:
+  schemas:
+    Tagged:
+      oneOf:
+        - $ref: "#/components/schemas/TaggedFoo"
+      discriminator:
+        propertyName: type
+        mapping:
+          foo: "#/components/schemas/TaggedFoo"
+    TaggedFoo:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string

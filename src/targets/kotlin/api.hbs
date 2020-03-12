@@ -334,6 +334,9 @@ interface {{{name}}}Service {
 {{/if}}
 {{#each endpoints}}
 
+    {{#if config.userAgent}}
+    @Headers("User-Agent: {{config.userAgent}}")
+    {{/if}}
     @{{{httpMethod}}}("{{{url}}}")
     fun {{{operationId}}}{{{operationParams}}}: {{{returnType}}}
 {{/each}}

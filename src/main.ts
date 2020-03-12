@@ -5,8 +5,8 @@ import path from "path"
 import program from "commander"
 import { sync as mkdirpSync } from "mkdirp"
 
-import { loadConfig, loadTarget, generateArgumentsFromTarget } from "./index"
-import { knownTargets } from "./targets"
+import { loadConfig, loadTarget, generateArgumentsFromTarget } from "index"
+import { knownTargets } from "targets"
 
 async function generateFromPath(
   targetName: string,
@@ -39,8 +39,9 @@ program
   .name("openapi-eller")
   .version("0.3.3")
   // tslint:disable-next-line:max-line-length
-  .description(`Generate API clients and servers for OpenAPI v3 specifications.\n\n` +
-               `  Available targets: ${knownTargets.join(", ")}`)
+  .description(`Generate API clients and servers for OpenAPI v3 specifications.
+  Available targets: ${knownTargets.join(", ")}
+`)
   .arguments("<target> <input> [config]")
   .option("-o, --output [directory]", "The directory to output to")
   .option("-d, --debug", "Enable debug.json output")

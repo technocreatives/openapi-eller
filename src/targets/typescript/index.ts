@@ -43,11 +43,11 @@ export default class TypeScriptTarget extends Target {
   }
 
   fieldDoc(doc: SchemaObject): string {
-    return "// " + doc
+    return `// ${doc}`
   }
 
   modelDoc(doc: SchemaObject): string {
-    return "// " + doc
+    return `// ${doc}`
   }
 
   interface(name: string): string {

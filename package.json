@@ -1,6 +1,6 @@
 {
   "name": "openapi-eller",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Generate OpenAPI v3 clients and servers from the command line",
   "main": "dist/main.js",
   "bin": {
@@ -8,43 +8,43 @@
   },
   "scripts": {
     "prepublishOnly": "npm run clean && npm run build",
-    "transpile": "babel src -d dist/ --extensions=\".ts\" --copy-files",
-    "build": "npm run transpile",
+    "build": "npm run lint && tsc && npm run copyAssets",
     "clean": "rm -rf dist && rm -rf tests-dist",
-    "test": "babel tests -d tests-dist --extensions=\".ts\" --copy-files && ava tests-dist"
+    "copyAssets": "cd src && copyfiles **/*.hbs **/*.txt ../dist/",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "postbuild": "ef-tspm",
+    "test": "ava"
   },
   "author": "Brendan Molloy <brendan@bbqsrc.net>",
   "license": "ISC",
   "dependencies": {
-    "@types/object-path": "^0.9.29",
-    "commander": "^2.15.1",
+    "commander": "^4.0.1",
     "handlebars": "^4.5.3",
     "js-yaml": "^3.13.1",
-    "json-refs": "^3.0.6",
+    "json-refs": "^3.0.13",
     "lodash": "^4.17.15",
     "mkdirp": "^0.5.1",
     "object-path": "^0.11.4",
-    "whatwg-url": "^6.4.0",
-    "winston": "^2.4.2"
+    "whatwg-url": "^7.1.0",
+    "winston": "^2.4.4"
   },
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.3.4",
-    "@babel/plugin-proposal-class-properties": "^7.3.4",
-    "@babel/plugin-proposal-object-rest-spread": "^7.3.4",
-    "@babel/preset-env": "^7.3.4",
-    "@babel/preset-typescript": "^7.3.3",
-    "@types/handlebars": "^4.0.37",
-    "@types/js-yaml": "^3.11.1",
-    "@types/lodash": "^4.14.106",
-    "@types/node": "^9.6.2",
-    "@types/winston": "^2.3.9",
-    "ava": "^1.3.1",
-    "babel-plugin-module-resolver": "^3.2.0",
-    "openapi3-ts": "^0.9.0",
-    "tslint": "^5.11.0",
-    "tslint-config-airbnb": "^5.10.0",
-    "typescript": "^3.0.1"
+    "@ef-carbon/tspm": "^2.2.5",
+    "@types/handlebars": "^4.1.0",
+    "@types/js-yaml": "^3.12.1",
+    "@types/lodash": "^4.14.149",
+    "@types/mkdirp": "^0.5.2",
+    "@types/node": "^12.12.21",
+    "@types/object-path": "^0.11.0",
+    "@types/winston": "^2.4.4",
+    "ava": "^2.4.0",
+    "copyfiles": "^2.1.1",
+    "openapi3-ts": "^1.3.0",
+    "ts-node": "^8.5.4",
+    "tsconfig-paths": "^3.9.0",
+    "tslint": "^5.20.1",
+    "tslint-config-airbnb": "^5.11.2",
+    "typescript": "^3.7.3"
   },
   "files": [
     "dist/"
@@ -60,5 +60,15 @@
   },
   "engines": {
     "node": "^10.0.0"
+  },
+  "ava": {
+    "compileEnhancements": false,
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register",
+      "tsconfig-paths/register"
+    ]
   }
 }

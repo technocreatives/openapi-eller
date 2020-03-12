@@ -25,8 +25,9 @@ import {
   TargetFieldMap
 } from "types"
 import logger from "winston"
-import { resolveType, resolveSchemaType } from "./targets"
+import { resolveType, resolveSchemaType } from "targets"
 import _ from "lodash"
+import { isRef } from "helpers"
 
 const httpVerbs = [
   "get", "put", "post", "delete", "options", "head", "patch", "trace"
@@ -231,7 +232,7 @@ export abstract class Visitor {
       this.unwalk()
     }
 
-    if (additionalProperties != null) {
+    if (typeof additionalProperties !== "boolean" && additionalProperties != null) {
       this.walk("additionalProperties")
       this.walkSchema(this.assertNotRef(additionalProperties), schema, undefined)
       this.unwalk()
@@ -240,8 +241,10 @@ export abstract class Visitor {
     this.walkedSet.add(schema)
   }
 
-  walkResponse(response: ResponseObject) {
-      // console.log(response)
+  walkResponse(response: ResponseObject | ReferenceObject) {
+    if (isRef(response)) {
+      throw new Error("A response is an unresolved reference")
+    }
     const { content } = response
 
     if (content != null) {
@@ -266,7 +269,10 @@ export abstract class Visitor {
     }
   }
 
-  walkRequestBody(requestBody: RequestBodyObject, operationId?: string) {
+  walkRequestBody(requestBody: RequestBodyObject | ReferenceObject, operationId?: string) {
+    if (isRef(requestBody)) {
+      throw new Error("A request body is an unresolved reference")
+    }
     const { content } = requestBody
 
     for (const mediaTypeKey in content) {
@@ -395,6 +401,15 @@ export abstract class Visitor {
     }
     // callbacks, securitySchemes
     const { schemas, requestBodies, responses } = components
+
+    if (requestBodies) {
+      Object.keys(requestBodies).forEach((v) => {
+        const rb = requestBodies[v]
+        if (isRef(rb)) {
+          throw new Error("Unresolved reference found in request bodies")
+        }
+      })
+    }
 
     iterWalk("schema", this.walkComponentSchema.bind(this), schemas)
     iterWalk("schema", this.walkSchema.bind(this), schemas)
