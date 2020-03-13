@@ -12,7 +12,7 @@
     "clean": "rm -rf dist && rm -rf tests-dist",
     "copyAssets": "cd src && copyfiles **/*.hbs **/*.txt ../dist/",
     "lint": "tslint -c tslint.json -p tsconfig.json",
-    "postbuild": "ef-tspm",
+    "postbuild": "ef-tspm && ./shebang.js dist/main.js",
     "test": "ava"
   },
   "author": "Brendan Molloy <brendan@bbqsrc.net>",
