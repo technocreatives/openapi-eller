@@ -1,0 +1,349 @@
+openapi: 3.0.0
+info:
+  title: MagicSeaWeed
+  version: v1
+servers:
+  - url: https://magicseaweed.com/api/
+    description: API
+security:
+  - apiKey: []
+paths:
+  /{apikey}/forecast/:
+    parameters:
+      - name: apikey
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      parameters:
+        - name: spot_id
+          in: query
+          schema:
+            type: integer
+          required: true
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      operationId: getForecastData
+      summary: Get Forecast Data
+      responses:
+        200:
+          description: Forecast data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResponse"
+  /{apikey}/tide/:
+    parameters:
+      - name: apikey
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      parameters:
+        - name: spot_id
+          in: query
+          schema:
+            type: integer
+          required: true
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      operationId: getTideData
+      summary: Get Tide Data
+      responses:
+        200:
+          description: Tide data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TideResponse"
+  /{apikey}/spot/:
+    parameters:
+      - name: apikey
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+          required: true
+        - name: lon
+          in: query
+          schema:
+            type: number
+          required: true
+        - name: distance
+          in: query
+          schema:
+            type: number
+          required: true
+        - name: offset
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: user
+          in: query
+          required: true
+          schema:
+            type: string
+      operationId: getSpotsData
+      summary: Get Spots Data
+      responses:
+        200:
+          description: Spots data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpotsResponse"
+components:
+  schemas:
+    TideResponse:
+      type: array
+      items: 
+        $ref: "#/components/schemas/TideRecord"
+    TideRecord:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+        tide:
+          type: array
+          items:
+            type: object
+            properties:
+              shift:
+                type: number
+              state:
+                type: string
+              unixtime:
+                type: integer
+              timestamp:
+                type: integer
+              timezoneOffset:
+                type: integer
+        unit:
+          type: string
+        sunriseTwillight:
+          type: integer
+        sunrise:
+          type: integer
+        sunsetTwillight:
+          type: integer
+        images:
+          type: object
+          properties:
+            full:
+              type: string
+        port:
+          type: object
+          properties:
+            name:
+              type: string
+            lat:
+              type: number
+            lon:
+              type: number
+            distance:
+              type: number
+            unit:
+              type: string
+    ForecastResponse:
+      type: array
+      items: 
+        $ref: "#/components/schemas/ForecastRecord"
+    ForecastRecord:
+      type: object
+      properties:
+        timestamp:
+          type: number
+          format: integer
+        localTimestamp:
+          type: number
+          format: integer
+        issueTimestamp:
+          type: number
+          format: integer
+        gfsIssueTimestamp:
+          type: number
+          format: integer
+        fadedRating:
+          type: number
+          format: integer
+        solidRating:
+          type: number
+          format: integer
+        en_threeHourTimeText:
+          type: string
+        threeHourTimeText:
+          type: string
+        timezoneAbbr:
+          type: string
+        swell:
+          type: object
+          properties:
+            height:
+              type: number
+            absHeight:
+              type: number
+            absMinBreakingHeight:
+              type: number
+            absMaxBreakingHeight:
+              type: number
+            incomingSwellCount:
+              type: number
+              format: integer
+            direction:
+              type: number
+            trueDirection:
+              type: number
+            compassDirection:
+              type: string
+            period:
+              type: number
+              format: integer
+            probability:
+              type: number
+            unit:
+              type: string
+            minBreakingHeight:
+              type: number
+            maxBreakingHeight:
+              type: number
+            components:
+              type: object
+              properties:
+                combined:
+                  type: object
+                  properties:
+                    height:
+                      type: number
+                    absHeight:
+                      type: number
+                    period:
+                      type: number
+                      format: integer
+                    windSeaFraction:
+                      type: number
+                    power:
+                      type: number
+                    direction:
+                      type: number
+                    trueDirection:
+                      type: number
+                    directionalSpread:
+                      type: number
+                    compassDirection:
+                      type: string
+                    isOffshore:
+                      type: boolean
+                primary:
+                  type: object
+                  properties:
+                    height:
+                      type: number
+                    absHeight:
+                      type: number
+                    period:
+                      type: number
+                      format: integer
+                    windSeaFraction:
+                      type: number
+                    power:
+                      type: number
+                    direction:
+                      type: number
+                    trueDirection:
+                      type: number
+                    directionalSpread:
+                      type: number
+                    compassDirection:
+                      type: string
+                    isOffshore:
+                      type: boolean
+                    absBreakingHeight:
+                      type: number
+        wind:
+          type: object
+          properties:
+            speed:
+              type: number
+            direction:
+              type: number
+            trueDirection:
+              type: number
+            compassDirection:
+              type: string
+            chill:
+              type: number
+            gusts:
+              type: number
+            unit:
+              type: string
+            rating:
+              type: number
+            stringDirection:
+              type: string
+        condition:
+          type: object
+          properties:
+            pressure:
+              type: number
+            temperature:
+              type: number
+            sst:
+              type: number
+            weather:
+              type: string
+            weatherText:
+              type: string
+            unitPressure:
+              type: string
+            unit:
+              type: string
+    SpotsResponse:
+      type: array
+      items:  
+        $ref: '#/components/schemas/SpotRecord'
+    SpotRecord:
+      type: object
+      properties:
+        _id:
+          type: integer
+        _path:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        lat:
+          type: number
+        lon:
+          type: number
+        surfAreaId:
+          type: number
+          format: integer
+        optimumSwellAngle:
+          type: number
+          format: integer
+        optimumWindAngle:
+          type: number
+          format: integer
+        isBigWave: 
+          type: boolean
+        mapImageUrl:
+          type: string  
