@@ -35,6 +35,7 @@ export interface ConfigObject {
   useGroups?: boolean
   include?: string[]
   prefix?: string
+  userAgent?: string
 }
 
 export abstract class Target {

@@ -1,6 +1,6 @@
 {
   "name": "openapi-eller",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Generate OpenAPI v3 clients and servers from the command line",
   "main": "dist/main.js",
   "bin": {
@@ -19,7 +19,7 @@
   "license": "ISC",
   "dependencies": {
     "commander": "^4.0.1",
-    "handlebars": "^4.5.3",
+    "handlebars": "^4.7.6",
     "js-yaml": "^3.13.1",
     "json-refs": "^3.0.13",
     "lodash": "^4.17.15",
@@ -59,7 +59,7 @@
     "url": "https://github.com/technocreatives/openapi-eller.git"
   },
   "engines": {
-    "node": "^10.0.0"
+    "node": ">=10.0.0"
   },
   "ava": {
     "compileEnhancements": false,
